@@ -28,6 +28,8 @@ export function ContactForm() {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -139,10 +141,53 @@ export function ContactForm() {
     setSuggestions([])
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission
-    console.log("Form submitted:", formData)
+    setIsSubmitting(true)
+    setSubmitStatus("idle")
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error("API Error:", data)
+        throw new Error(data.error || "Failed to send message")
+      }
+
+      console.log("Form submitted successfully:", data)
+
+      // Success
+      setSubmitStatus("success")
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        location: "",
+        message: "",
+      })
+      
+      // Reset status after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus("idle")
+      }, 5000)
+    } catch (error) {
+      console.error("Error submitting form:", error)
+      setSubmitStatus("error")
+      // Reset error status after 5 seconds
+      setTimeout(() => {
+        setSubmitStatus("idle")
+      }, 5000)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -254,13 +299,29 @@ export function ContactForm() {
             <Button
               type="submit"
               size="lg"
-              className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] text-lg px-12 py-6 h-auto"
+              disabled={isSubmitting}
+              className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] text-lg px-12 py-6 h-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit Inquiry
+              {isSubmitting ? "Sending..." : "Submit Inquiry"}
             </Button>
-            <p className="text-sm text-[#543A14]/70 mt-6">
-              We'll respond within 24 hours to discuss your personalized service.
-            </p>
+            
+            {submitStatus === "success" && (
+              <p className="text-sm text-green-600 mt-6">
+                Thank you! Your inquiry has been sent. We'll respond within 24 hours.
+              </p>
+            )}
+            
+            {submitStatus === "error" && (
+              <p className="text-sm text-red-600 mt-6">
+                Sorry, there was an error sending your message. Please try again later.
+              </p>
+            )}
+            
+            {submitStatus === "idle" && (
+              <p className="text-sm text-[#543A14]/70 mt-6">
+                We'll respond within 24 hours to discuss your personalized service.
+              </p>
+            )}
           </div>
         </form>
       </div>
