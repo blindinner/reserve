@@ -21,13 +21,15 @@ export function Hero() {
       {/* Navigation */}
       <nav className="absolute top-0 left-0 right-0 z-20 px-6 py-8 md:px-12 lg:px-20">
         <div className="flex items-center justify-start max-w-7xl mx-auto">
-          <h1 className="text-2xl md:text-3xl font-light tracking-[0.15em] text-white uppercase drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">Rendeza</h1>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-white uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+            RENDEZA
+          </h1>
         </div>
       </nav>
 
       {/* Hero Content */}
       <div className="relative z-10 px-6 md:px-12 text-center max-w-5xl mx-auto">
-        <h2 className="text-5xl md:text-7xl lg:text-8xl font-light text-white mb-6 leading-[1.1] tracking-tight text-balance drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
+        <h2 className="text-5xl md:text-7xl lg:text-8xl font-serif font-light text-white mb-6 leading-[1.1] tracking-tight text-balance drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
           Your Table, Every Week
         </h2>
         <p className="text-lg md:text-xl text-white mb-12 leading-relaxed max-w-3xl mx-auto font-light text-pretty drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">

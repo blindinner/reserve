@@ -1,7 +1,8 @@
 {
   "app": {
     "[project]/app/page": [
-      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2"
+      "static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2",
+      "static/media/Antic Didone Font-s.p.ac2fe296.ttf"
     ]
   },
   "appUsingSizeAdjust": true,
