@@ -78,3 +78,6 @@ Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
 [00:19:05.940] Server  LOG     Attempting to send email to benji@rendeza.com...
 [00:19:06.369] Server  LOG     Email sent successfully! Resend response: {}
 [00:19:06.479] Browser LOG     Form submitted successfully: {"id":"d5b785df-212a-4504-b12d-9e318fdb4377","message":"Email sent successfully"}
+[12:02:48.452] Server  LOG      ✓ Compiled in 2.3s
+[12:02:59.174] Server  LOG      ✓ Compiled in 887ms
+[12:04:06.387] Server  LOG      ✓ Compiled in 329ms
