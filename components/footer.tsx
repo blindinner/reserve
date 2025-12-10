@@ -15,7 +15,7 @@ export function Footer() {
                 className="h-10 md:h-12 w-auto mx-auto md:mx-0"
               />
             </div>
-            <p className="text-[#543A14]/75">Personalized dining experiences for discerning professionals</p>
+            <p className="text-[#543A14]/75">Make time for what matters most</p>
           </div>
 
           <div className="flex flex-col items-center md:items-end gap-4">

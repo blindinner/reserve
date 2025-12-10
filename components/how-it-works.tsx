@@ -36,7 +36,7 @@ export function HowItWorks() {
             How It Works
           </h2>
           <p className="text-xl md:text-2xl text-[#FFF0DC]/90 max-w-2xl leading-relaxed font-light">
-            A concierge service designed for busy professionals who refuse to compromise on what truly matters.
+            A concierge service designed for those who refuse to compromise on what truly matters.
           </p>
         </div>
 
