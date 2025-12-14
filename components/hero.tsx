@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import Link from "next/link"
 
 export function Hero() {
   return (
@@ -42,7 +43,7 @@ export function Hero() {
               className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] px-4 md:px-6 py-2 text-sm font-medium tracking-wide shadow-lg"
               asChild
             >
-              <a href="/#contact">Get Started</a>
+              <Link href="/free-trial">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -61,7 +62,7 @@ export function Hero() {
           className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] px-8 py-5 text-sm font-medium tracking-wide"
           asChild
         >
-          <a href="#contact">Begin Your Experience</a>
+          <Link href="/free-trial">Begin Your Experience</Link>
         </Button>
       </div>
 
