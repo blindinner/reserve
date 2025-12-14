@@ -343,51 +343,113 @@ export function OnboardingForm() {
     setSubmitStatus("idle")
 
     try {
-      const response = await fetch("/api/onboarding", {
+      // Skip payment for business plan (custom pricing)
+      if (formData.pricingPlan === "business") {
+        // Just submit the form without payment
+        const response = await fetch("/api/onboarding", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          console.error("API Error:", data)
+          throw new Error(data.error || "Failed to submit form")
+        }
+
+        setSubmitStatus("success")
+        setTimeout(() => {
+          setFormData({
+            firstName: "",
+            lastName: "",
+            phoneNumber: "",
+            email: "",
+            address: "",
+            reservationWith: "",
+            numberOfPeople: "",
+            preferredDay: "",
+            preferredTime: "",
+            startDateOption: "",
+            pricingPlan: "",
+            billingFrequency: "monthly",
+            additionalInfo: "",
+          })
+          setBillingFrequency("annual")
+          setTimeHour("")
+          setTimeMinute("")
+          setTimePeriod("PM")
+          setCurrentStep(1)
+          setSubmitStatus("idle")
+        }, 5000)
+        return
+      }
+
+      // Calculate payment amount
+      const amount = getCurrentPrice(formData.pricingPlan)
+      
+      if (!amount || amount <= 0) {
+        throw new Error("Invalid payment amount")
+      }
+
+      // Generate unique order ID
+      const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+      // Create payment request
+      const paymentResponse = await fetch("/api/allpay/create-payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          orderId: orderId,
+          plan: formData.pricingPlan,
+          billingFrequency: formData.billingFrequency,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          amount: amount,
+        }),
       })
 
-      const data = await response.json()
+      const paymentData = await paymentResponse.json()
 
-      if (!response.ok) {
-        console.error("API Error:", data)
-        throw new Error(data.error || "Failed to submit form")
+      if (!paymentResponse.ok) {
+        console.error("Payment API Error:", paymentData)
+        throw new Error(paymentData.error || "Failed to create payment")
       }
 
-      console.log("Form submitted successfully:", data)
+      // Store form data temporarily (you might want to save this to a database)
+      // For now, we'll submit it to onboarding API which will store it
+      // The webhook will confirm payment later
+      const onboardingResponse = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          orderId: orderId, // Include order ID for tracking
+        }),
+      })
 
-      // Success
-      setSubmitStatus("success")
-        // Reset form after success
-      setTimeout(() => {
-        setFormData({
-          firstName: "",
-          lastName: "",
-          phoneNumber: "",
-          email: "",
-          address: "",
-          reservationWith: "",
-          numberOfPeople: "",
-          preferredDay: "",
-          preferredTime: "",
-          startDateOption: "",
-          pricingPlan: "",
-          billingFrequency: "monthly",
-          additionalInfo: "",
-        })
-        setBillingFrequency("annual")
-        setTimeHour("")
-        setTimeMinute("")
-        setTimePeriod("PM")
-        setCurrentStep(1)
-        setSubmitStatus("idle")
-      }, 5000)
+      if (!onboardingResponse.ok) {
+        console.error("Onboarding API Error:", await onboardingResponse.json())
+        // Continue anyway - payment is created
+      }
+
+      // Redirect to Allpay payment page
+      if (paymentData.paymentUrl) {
+        window.location.href = paymentData.paymentUrl
+      } else {
+        throw new Error("No payment URL received")
+      }
     } catch (error) {
-      console.error("Error submitting form:", error)
+      console.error("Error processing payment:", error)
       setSubmitStatus("error")
       // Reset error status after 5 seconds
       setTimeout(() => {

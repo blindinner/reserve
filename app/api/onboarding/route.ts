@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { NextResponse } from "next/server"
+import { createOrGetCustomer, createOrder, getOrderByOrderId, updateOrder } from "@/lib/db"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -120,6 +121,71 @@ export async function POST(request: Request) {
     }
 
     const priceDisplay = getPriceDisplay(pricingPlan, billingFrequency || "monthly")
+
+    // Calculate amount
+    const planPricingCalc: Record<string, { monthly: number; annual: number }> = {
+      weekly: { monthly: 39, annual: 390 },
+      biweekly: { monthly: 25, annual: 250 },
+      business: { monthly: 0, annual: 0 },
+    }
+    const amount = pricingPlan === "business" 
+      ? 0 
+      : billingFrequency === "monthly"
+        ? planPricingCalc[pricingPlan as "weekly" | "biweekly"].monthly
+        : planPricingCalc[pricingPlan as "weekly" | "biweekly"].annual
+
+    // Save to database
+    try {
+      // Create or get customer
+      const customer = await createOrGetCustomer({
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        phone_number: phoneNumber,
+        address: address,
+      })
+
+      // Create order (if order_id exists, it was already created in payment flow)
+      const orderId = body.orderId || `ORDER-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+      
+      // Check if order exists (might have been created by payment API)
+      const existingOrder = await getOrderByOrderId(orderId)
+      
+      let order
+      if (existingOrder) {
+        // Update existing order with reservation details
+        order = await updateOrder(orderId, {
+          customer_id: customer.id,
+          reservation_with: reservationWith,
+          number_of_people: finalNumberOfPeople ? parseInt(finalNumberOfPeople) : null,
+          preferred_day: preferredDay,
+          preferred_time: preferredTime,
+          start_date_option: startDateOption,
+          additional_info: additionalInfo || null,
+        })
+      } else {
+        // Order doesn't exist, create it
+        order = await createOrder({
+          order_id: orderId,
+          customer_id: customer.id,
+          plan: pricingPlan,
+          billing_frequency: billingFrequency || "monthly",
+          amount: amount,
+          status: "pending",
+          reservation_with: reservationWith,
+          number_of_people: finalNumberOfPeople ? parseInt(finalNumberOfPeople) : null,
+          preferred_day: preferredDay,
+          preferred_time: preferredTime,
+          start_date_option: startDateOption,
+          additional_info: additionalInfo || null,
+        })
+      }
+      
+      console.log("Data saved to database:", { customerId: customer.id, orderId: order.order_id })
+    } catch (dbError) {
+      console.error("Database error (continuing with email):", dbError)
+      // Continue with email even if database fails
+    }
 
     console.log("Attempting to send onboarding email to benji@rendeza.com...")
 
