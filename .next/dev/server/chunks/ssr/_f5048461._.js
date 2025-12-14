@@ -327,7 +327,7 @@ function ContactForm() {
                     className: "text-center mb-16",
                     children: [
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                            className: "text-4xl md:text-5xl lg:text-6xl font-light mb-6 text-balance text-[#543A14]",
+                            className: "text-4xl md:text-5xl lg:text-6xl font-serif font-light mb-6 text-balance text-[#543A14]",
                             children: "Begin Your Journey"
                         }, void 0, false, {
                             fileName: "[project]/components/contact-form.tsx",
@@ -564,9 +564,9 @@ function ContactForm() {
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
                                     type: "submit",
-                                    size: "lg",
+                                    size: "sm",
                                     disabled: isSubmitting,
-                                    className: "bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] text-lg px-12 py-6 h-auto disabled:opacity-50 disabled:cursor-not-allowed",
+                                    className: "bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] text-base px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed",
                                     children: isSubmitting ? "Sending..." : "Submit Inquiry"
                                 }, void 0, false, {
                                     fileName: "[project]/components/contact-form.tsx",

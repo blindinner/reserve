@@ -195,7 +195,7 @@ export function ContactForm() {
       <div className="max-w-4xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light mb-6 text-balance text-[#543A14]">Begin Your Journey</h2>
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-serif font-light mb-6 text-balance text-[#543A14]">Begin Your Journey</h2>
           <p className="text-xl md:text-2xl text-[#543A14]/80 leading-relaxed text-pretty">
             Share a few details, and we'll craft a personalized dining experience for you.
           </p>
@@ -298,9 +298,9 @@ export function ContactForm() {
           <div className="text-center pt-4">
             <Button
               type="submit"
-              size="lg"
+              size="sm"
               disabled={isSubmitting}
-              className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] text-lg px-12 py-6 h-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] text-base px-8 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Sending..." : "Submit Inquiry"}
             </Button>

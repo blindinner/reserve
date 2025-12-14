@@ -20,21 +20,41 @@ export function Hero() {
 
       {/* Navigation */}
       <nav className="absolute top-0 left-0 right-0 z-20 px-6 py-8 md:px-12 lg:px-20">
-        <div className="flex items-center justify-start max-w-7xl mx-auto">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-white uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
             RENDEZA
           </h1>
+          <div className="flex items-center gap-4 md:gap-6">
+            <a
+              href="/#why"
+              className="text-white/90 hover:text-white text-sm md:text-base font-light transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
+            >
+              Why
+            </a>
+            <a
+              href="/#how"
+              className="text-white/90 hover:text-white text-sm md:text-base font-light transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]"
+            >
+              How
+            </a>
+            <Button
+              size="sm"
+              className="bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] px-4 md:px-6 py-2 text-sm font-medium tracking-wide shadow-lg"
+              asChild
+            >
+              <a href="/#contact">Get Started</a>
+            </Button>
+          </div>
         </div>
       </nav>
 
       {/* Hero Content */}
       <div className="relative z-10 px-6 md:px-12 text-center max-w-5xl mx-auto">
         <h2 className="text-5xl md:text-7xl lg:text-8xl font-serif font-light text-white mb-6 leading-[1.1] tracking-tight text-balance drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
-          Your Table, Every Week
+          Make time for what matters most
         </h2>
         <p className="text-lg md:text-xl text-white mb-12 leading-relaxed max-w-3xl mx-auto font-light text-pretty drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-          An ongoing concierge service that secures your dedicated dining reservation—same day, same time—so you never
-          have to think about it again.
+          The subscription service for automatic reservations with the people you love. We handle the planning. You show up for the moments.
         </p>
         <Button
           size="sm"

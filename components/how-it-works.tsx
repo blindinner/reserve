@@ -1,24 +1,24 @@
 const steps = [
   {
     number: "01",
-    title: "Share Your Location",
-    description: "Tell us where you are, and we'll curate the perfect dining experiences in your area.",
+    title: "Choose Your People & Schedule",
+    description: "Tell us when you want to make time for them—weekly, bi-weekly, whatever works.",
   },
   {
     number: "02",
-    title: "Handpicked Selection",
-    description: "We select from our exclusive collection of premier restaurants, each chosen for excellence.",
+    title: "We Handle Everything Else",
+    description: "We find great restaurants in your area and book your table weeks ahead. No research. No phone calls. No decisions.",
   },
   {
     number: "03",
-    title: "Seamless Scheduling",
+    title: "It's Protected Time",
     description:
-      "Your reservation automatically repeats—every Monday at 8:00 PM, for example—with calendar invites sent in advance.",
+      "Your reservation goes straight on your calendar. Locked in before anything else can take that slot.",
   },
   {
     number: "04",
-    title: "Thoughtful Reminders",
-    description: "We ensure you never miss a reservation with timely reminders before each dinner.",
+    title: "Just Be There",
+    description: "Show up. Connect. Create memories.",
   },
 ]
 
@@ -36,7 +36,7 @@ export function HowItWorks() {
             How It Works
           </h2>
           <p className="text-xl md:text-2xl text-[#FFF0DC]/90 max-w-2xl leading-relaxed font-light">
-            A concierge service designed for those who refuse to compromise on what truly matters.
+            A subscription service designed for those who refuse to compromise on what truly matters.
           </p>
         </div>
 
