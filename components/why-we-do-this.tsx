@@ -1,6 +1,6 @@
 export function WhyWeDoThis() {
   return (
-    <section className="py-32 md:py-40 px-6 md:px-12 lg:px-20 bg-[#FFF0DC]">
+    <section id="why" className="py-32 md:py-40 px-6 md:px-12 lg:px-20 bg-[#FFF0DC]">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="mb-24 md:mb-32">

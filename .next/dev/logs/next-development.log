@@ -1,83 +1,254 @@
-[00:00:04.230] Server  LOG      ✓ Ready in 2.3s
-[00:00:08.257] Server  LOG      ○ Compiling / ...
-[00:00:11.661] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:00:06.158] Server  LOG      ✓ Ready in 4.9s
+[00:00:19.009] Server  LOG      ○ Compiling / ...
+[00:00:23.908] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:00:13.700] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:14.728] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:00:26.171] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:26.873] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:00:15.057] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:15.196] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:00:15.196] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:00:15.196] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765116990180}
-[00:00:15.887] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:00:27.123] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:27.123] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:27.123] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765693489920}
+[00:00:32.372] Server  LOG      ○ Compiling /onboarding ...
+[00:00:35.412] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765693497142}
+[00:00:56.383] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:57.300] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:57.300] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/onboarding","route":"/onboarding"}
+[00:00:57.300] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765693520129}
+[00:01:21.633] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:00:16.273] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:00:16.273] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:00:16.273] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765116991202}
-[00:00:36.949] Server  LOG     Received form submission: {}
-[00:00:36.951] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:00:38.171] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:00:38.172] Server  ERROR   Full error details: {}
-[00:00:38.287] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:00:38.287] Browser ERROR   Error submitting form: {}
-[00:05:50.239] Server  LOG     Received form submission: {}
-[00:05:50.241] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:05:51.244] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:05:51.245] Server  ERROR   Full error details: {}
-[00:05:51.371] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:05:51.371] Browser ERROR   Error submitting form: {}
-[00:05:54.367] Server  LOG     Received form submission: {}
-[00:05:54.368] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:05:54.604] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:05:54.605] Server  ERROR   Full error details: {}
-[00:05:54.788] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:05:54.788] Browser ERROR   Error submitting form: {}
-[00:06:25.285] Server  LOG     Received form submission: {}
-[00:06:25.285] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:06:26.161] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:06:26.162] Server  ERROR   Full error details: {}
-[00:06:26.360] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:06:26.360] Browser ERROR   Error submitting form: {}
-[00:06:31.253] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:01:21.633] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765693544446}
+[00:04:11.827] Server  LOG      ✓ Compiled in 1617ms
+[00:04:35.546] Server  LOG      ✓ Compiled in 1434ms
+[00:04:43.342] Server  LOG      ✓ Compiled in 489ms
+[00:04:56.614] Server  LOG      ✓ Compiled in 356ms
+[00:05:09.374] Server  LOG      ✓ Compiled in 282ms
+[00:05:41.536] Server  LOG      ✓ Compiled in 348ms
+[00:05:49.930] Server  LOG      ✓ Compiled in 281ms
+[00:05:56.694] Server  LOG      ✓ Compiled in 255ms
+[00:06:00.622] Server  LOG      ✓ Compiled in 372ms
+[00:06:12.877] Server  LOG      ✓ Compiled in 337ms
+[00:09:25.511] Server  LOG      ✓ Compiled in 213ms
+[00:09:25.641] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:09:30.909] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:09:30.911] Server  LOG      ✓ Compiled in 181ms
+[00:09:31.026] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:09:31.810] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:06:31.778] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:06:31.778] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:06:31.779] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765117366764}
-[00:06:45.379] Server  LOG     Received form submission: {}
-[00:06:45.380] Server  ERROR   Missing required fields: {}
-[00:06:45.535] Browser ERROR   API Error: {"error":"All fields are required"}
-[00:06:45.535] Browser ERROR   Error submitting form: {}
-[00:06:51.118] Server  LOG     Received form submission: {}
-[00:06:51.118] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:06:51.577] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:06:51.577] Server  ERROR   Full error details: {}
-[00:06:51.693] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:06:51.693] Browser ERROR   Error submitting form: {}
-[00:07:19.870] Server  LOG     Received form submission: {}
-[00:07:19.871] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:07:20.155] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:07:20.157] Server  ERROR   Full error details: {}
-[00:07:20.276] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:07:20.276] Browser ERROR   Error submitting form: {}
-[00:07:34.437] Server  LOG     Received form submission: {}
-[00:07:34.437] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:07:34.775] Server  ERROR   Resend error: "{\n  \"statusCode\": 403,\n  \"message\": \"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\",\n  \"name\": \"validation_error\"\n}"
-[00:07:34.776] Server  ERROR   Full error details: {}
-[00:07:34.903] Browser ERROR   API Error: {"details":{"message":"The rendeza.com domain is not verified. Please, add and verify your domain on https://resend.com/domains","name":"validation_error","statusCode":403},"error":"Domain not verified. Please verify contact.rendeza.com in Resend dashboard."}
-[00:07:34.903] Browser ERROR   Error submitting form: {}
-[00:15:46.638] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:09:31.943] Server  ERROR    ⨯ ReferenceError: billingFrequency is not defined
+[00:09:33.827] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:34.175] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:15:47.058] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:15:47.058] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:15:47.058] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765117922079}
-[00:16:00.885] Server  LOG     Received form submission: {}
-[00:16:00.888] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:16:01.912] Server  LOG     Email sent successfully! Resend response: {}
-[00:16:02.026] Browser LOG     Form submitted successfully: {"id":"38e30d53-1f30-4485-a763-aa7a04596cdc","message":"Email sent successfully"}
-[00:19:05.938] Server  LOG     Received form submission: {}
-[00:19:05.940] Server  LOG     Attempting to send email to benji@rendeza.com...
-[00:19:06.369] Server  LOG     Email sent successfully! Resend response: {}
-[00:19:06.479] Browser LOG     Form submitted successfully: {"id":"d5b785df-212a-4504-b12d-9e318fdb4377","message":"Email sent successfully"}
-[12:02:48.452] Server  LOG      ✓ Compiled in 2.3s
-[12:02:59.174] Server  LOG      ✓ Compiled in 887ms
-[12:04:06.387] Server  LOG      ✓ Compiled in 329ms
+[00:09:34.175] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:09:41.242] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:09:41.252] Server  LOG      ✓ Compiled in 699ms
+[00:09:41.978] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:09:42.068] Server  ERROR    ⨯ ReferenceError: billingFrequency is not defined
+[00:09:43.058] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:43.266] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:09:43.813] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:09:49.852] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:09:49.870] Server  LOG      ✓ Compiled in 111ms
+[00:09:50.387] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:09:50.464] Server  ERROR    ⨯ ReferenceError: billingFrequency is not defined
+[00:09:51.077] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:51.292] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:09:51.292] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:09:53.893] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:09:53.909] Server  LOG      ✓ Compiled in 267ms
+[00:09:54.912] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:09:55.649] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:09:56.146] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:09:56.780] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:09:56.780] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:09:56.780] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694059616}
+[00:12:14.776] Server  LOG      ✓ Compiled in 128ms
+[00:12:21.030] Server  LOG      ✓ Compiled in 191ms
+[00:12:45.703] Server  LOG      ✓ Compiled in 169ms
+[00:12:47.810] Server  LOG      ✓ Compiled in 129ms
+[00:12:52.071] Server  LOG      ✓ Compiled in 145ms
+[00:12:54.525] Server  LOG      ✓ Compiled in 378ms
+[00:13:05.580] Server  LOG      ✓ Compiled in 645ms
+[00:14:44.673] Server  LOG      ✓ Compiled in 240ms
+[00:15:08.914] Server  LOG      ✓ Compiled in 128ms
+[00:15:23.655] Server  LOG      ✓ Compiled in 688ms
+[00:15:23.869] Browser ERROR   uncaughtError: ReferenceError: inputRef is not defined
+[00:17:40.903] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:17:40.905] Server  LOG      ✓ Compiled in 285ms
+[00:17:41.239] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694523808}
+[00:17:43.050] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:17:45.398] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:17:45.549] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:17:46.932] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:17:46.933] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:17:46.933] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694529612}
+[00:19:33.572] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=annual color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=annual","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694636339}
+[00:19:43.939] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694646748}
+[00:21:07.467] Server  LOG      ✓ Compiled in 379ms
+[00:21:24.522] Server  LOG      ✓ Compiled in 200ms
+[00:21:35.575] Server  LOG      ✓ Compiled in 245ms
+[00:22:18.094] Server  LOG      ✓ Compiled in 197ms
+[00:22:29.408] Server  LOG      ✓ Compiled in 267ms
+[00:23:17.231] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=annual color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=annual","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694858336}
+[00:24:11.752] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765694914347}
+[00:25:29.953] Server  LOG      ✓ Compiled in 281ms
+[00:25:37.984] Server  LOG      ✓ Compiled in 608ms
+[00:25:46.419] Server  LOG      ✓ Compiled in 347ms
+[00:25:54.174] Server  LOG      ✓ Compiled in 195ms
+[00:25:56.234] Server  LOG      ✓ Compiled in 153ms
+[00:30:53.807] Server  LOG      ✓ Compiled in 139ms
+[00:30:53.921] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:31:00.460] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:31:00.506] Server  LOG      ✓ Compiled in 191ms
+[00:31:01.551] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:01.619] Server  ERROR    ⨯ ReferenceError: billingFrequency is not defined
+[00:31:01.663] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:31:02.576] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:31:03.037] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:03.037] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:31:08.464] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:31:08.470] Server  LOG      ✓ Compiled in 262ms
+[00:31:09.289] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:09.340] Server  ERROR    ⨯ ReferenceError: billingFrequency is not defined
+[00:31:09.852] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:31:10.138] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:10.138] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:31:14.735] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:31:14.756] Server  LOG      ✓ Compiled in 139ms
+[00:31:15.491] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:15.534] Server  ERROR    ⨯ ReferenceError: billingFrequency is not defined
+[00:31:16.048] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:31:16.316] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:16.316] Browser ERROR   uncaughtError: ReferenceError: billingFrequency is not defined
+[00:31:19.501] Server  WARN     ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:31:19.517] Server  LOG      ✓ Compiled in 171ms
+[00:31:20.182] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:21.016] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:31:21.208] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:31:22.260] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:31:22.260] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:31:22.260] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695345109}
+[00:31:25.645] Server  LOG      ✓ Compiled in 496ms
+[00:32:57.728] Server  LOG      ✓ Compiled in 169ms
+[00:33:03.299] Server  LOG      ✓ Compiled in 140ms
+[00:33:08.515] Server  LOG      ✓ Compiled in 136ms
+[00:34:13.860] Server  LOG      ✓ Compiled in 147ms
+[00:34:17.093] Server  LOG      ✓ Compiled in 229ms
+[00:34:32.116] Server  LOG      ✓ Compiled in 370ms
+[00:34:35.553] Server  LOG      ✓ Compiled in 135ms
+[00:34:39.271] Server  LOG      ✓ Compiled in 150ms
+[00:35:59.129] Server  LOG      ✓ Compiled in 136ms
+[00:36:53.252] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:36:55.255] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:36:55.473] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:36:56.135] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:36:56.135] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:36:56.135] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695678987}
+[00:37:23.037] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695705895}
+[00:37:26.797] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695709655}
+[00:38:02.950] Server  LOG      ✓ Compiled in 695ms
+[00:38:03.052] Browser ERROR   ./components/pricing-plans.tsx:70:20
+Parsing ecmascript source code failed
+  68 |               <p className="text-sm text-[#543A14]/60">Perfect for consistent routine</p>
+  69 |             </div>
+> 70 |           </button>
+     |                    ^
+> 71 |
+     | ^
+> 72 |           {/* Biweekly Plan - Popular */}
+     | ^^^^^^^^^^^
+  73 |           <button
+  74 |             type="button"
+  75 |             onClick={() => setSelectedPlan("biweekly")}
+
+Expected '</', got 'jsx text (
+
+          )'
+
+Import trace:
+  Server Component:
+    ./components/pricing-plans.tsx
+    ./app/page.tsx
+[00:38:04.666] Server  LOG      ✓ Compiled in 264ms
+[00:38:09.206] Server  LOG      ✓ Compiled in 150ms
+[00:38:09.271] Browser ERROR   ./components/pricing-plans.tsx:112:20
+Parsing ecmascript source code failed
+  110 |               <p className="text-sm text-[#543A14]/60">Ideal balance of frequency</p>
+  111 |             </div>
+> 112 |           </button>
+      |                    ^
+> 113 |
+      | ^
+> 114 |           {/* Customized Plan */}
+      | ^^^^^^^^^^^
+  115 |           <button
+  116 |             type="button"
+  117 |             onClick={() => setSelectedPlan("customized")}
+
+Expected '</', got 'jsx text (
+
+          )'
+
+Import trace:
+  Server Component:
+    ./components/pricing-plans.tsx
+    ./app/page.tsx
+[00:38:16.874] Server  LOG      ✓ Compiled in 230ms
+[00:38:16.987] Browser ERROR   ./components/pricing-plans.tsx:144:20
+Parsing ecmascript source code failed
+  142 |               <p className="text-sm text-[#543A14]/60">Flexible and personalized</p>
+  143 |             </div>
+> 144 |           </button>
+      |                    ^
+> 145 |         </div>
+      | ^^^^^^^^^
+  146 |
+  147 |         {/* Continue Button */}
+  148 |         <div className="text-center">
+
+Expected '</', got 'jsx text (
+        )'
+
+Import trace:
+  Server Component:
+    ./components/pricing-plans.tsx
+    ./app/page.tsx
+[00:38:18.981] Server  LOG      ✓ Compiled in 145ms
+[00:38:40.598] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695782795}
+[00:38:42.487] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695785348}
+[00:38:44.037] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=weekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=weekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695786683}
+[00:38:54.423] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695797280}
+[00:38:56.662] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695799274}
+[00:38:59.011] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695801871}
+[00:39:45.388] Server  LOG      ✓ Compiled in 285ms
+[00:41:08.485] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=customized&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=customized&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695929974}
+[00:41:12.701] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765695935564}
+[00:43:00.237] Server  LOG      ✓ Compiled in 140ms
+[00:43:14.770] Server  LOG      ✓ Compiled in 166ms
+[00:43:16.835] Server  LOG      ✓ Compiled in 211ms
+[00:43:23.409] Server  LOG      ✓ Compiled in 230ms
+[00:43:25.527] Server  LOG      ✓ Compiled in 182ms
+[00:43:27.496] Server  LOG      ✓ Compiled in 223ms
+[00:45:10.226] Server  LOG      ✓ Compiled in 119ms
+[00:49:29.308] Server  LOG      ✓ Compiled in 186ms
+[00:50:04.159] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765696466382}
+[00:50:17.330] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/#pricing color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/#pricing","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765696480068}
+[00:50:20.651] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1765696483314}
+[00:51:08.829] Server  LOG      ✓ Compiled in 224ms

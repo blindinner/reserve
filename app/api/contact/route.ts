@@ -15,13 +15,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, email, location, message } = body
+    const { firstName, lastName, email, phoneNumber, message } = body
 
-    console.log("Received form submission:", { name, email, location, message: message.substring(0, 50) + "..." })
+    console.log("Received form submission:", { firstName, lastName, email, phoneNumber, message: message?.substring(0, 50) + "..." })
 
     // Validate required fields
-    if (!name || !email || !location || !message) {
-      console.error("Missing required fields:", { name: !!name, email: !!email, location: !!location, message: !!message })
+    if (!firstName || !lastName || !email || !phoneNumber || !message) {
+      console.error("Missing required fields:", { firstName: !!firstName, lastName: !!lastName, email: !!email, phoneNumber: !!phoneNumber, message: !!message })
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
@@ -33,9 +33,9 @@ export async function POST(request: Request) {
     // Send email using Resend
     const plainTextMessage = `New Contact Form Submission
 
-Name: ${name}
+Name: ${firstName} ${lastName}
 Email: ${email}
-Location: ${location}
+Phone: ${phoneNumber}
 
 Message:
 ${message}
@@ -53,9 +53,9 @@ ${message}
     <h2 style="color: #543A14; margin-top: 0;">New Contact Form Submission</h2>
     
     <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #F0BB78;">
-      <p style="margin: 10px 0;"><strong style="color: #543A14;">Name:</strong> ${name}</p>
+      <p style="margin: 10px 0;"><strong style="color: #543A14;">Name:</strong> ${firstName} ${lastName}</p>
       <p style="margin: 10px 0;"><strong style="color: #543A14;">Email:</strong> <a href="mailto:${email}" style="color: #543A14;">${email}</a></p>
-      <p style="margin: 10px 0;"><strong style="color: #543A14;">Location:</strong> ${location}</p>
+      <p style="margin: 10px 0;"><strong style="color: #543A14;">Phone:</strong> ${phoneNumber}</p>
     </div>
     
     <div style="margin: 30px 0;">
@@ -70,7 +70,7 @@ ${message}
     const { data, error } = await resend.emails.send({
       from: "Rendeza <contact@rendeza.com>",
       to: "benji@rendeza.com",
-      subject: `New Inquiry from ${name} - Rendeza`,
+      subject: `New Inquiry from ${firstName} ${lastName} - Rendeza`,
       html: htmlMessage,
       text: plainTextMessage,
       replyTo: email,
