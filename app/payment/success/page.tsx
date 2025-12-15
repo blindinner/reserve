@@ -11,10 +11,33 @@ function PaymentSuccessContent() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // You might want to verify the payment status here
-    // by calling your API or checking a database
-    setIsLoading(false)
-  }, [])
+    // Verify payment and update order status
+    // Allpay doesn't send webhooks for initial payments, only for recurring charges
+    const verifyPayment = async () => {
+      if (orderId) {
+        try {
+          const response = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ orderId }),
+          })
+
+          if (response.ok) {
+            console.log("Payment verified and order status updated")
+          } else {
+            console.error("Failed to verify payment")
+          }
+        } catch (error) {
+          console.error("Error verifying payment:", error)
+        }
+      }
+      setIsLoading(false)
+    }
+
+    verifyPayment()
+  }, [orderId])
 
   return (
     <div className="min-h-screen bg-[#FFF0DC] flex items-center justify-center px-6">

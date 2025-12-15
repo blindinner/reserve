@@ -85,9 +85,12 @@ export async function POST(request: NextRequest) {
       ...(phoneNumber ? { client_phone: phoneNumber } : {}), // Only include if not empty
     }
 
-    console.log("Creating Allpay subscription request for order:", orderId)
-    console.log("Payment params (for signature):", JSON.stringify(paymentParams, null, 2))
-    console.log("API Key (first 10 chars):", apiKey.substring(0, 10) + "...")
+    // Debug logging (only in development)
+    if (process.env.NODE_ENV === "development") {
+      console.log("Creating Allpay subscription request for order:", orderId)
+      console.log("Payment params (for signature):", JSON.stringify(paymentParams, null, 2))
+      // DO NOT log API key, even partially
+    }
 
     // Generate signature (all values should already be strings)
     const sign = generateAllpaySignature(paymentParams, apiKey)

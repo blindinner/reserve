@@ -110,6 +110,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../../app/api/payment/verify/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payment/verify">> = Specific
+  const handler = {} as typeof import("../../../app/api/payment/verify/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 
 
 

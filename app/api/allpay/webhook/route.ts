@@ -87,16 +87,18 @@ export async function POST(request: NextRequest) {
     const chargeNumber = params.charge_number ? parseInt(params.charge_number) : (params.inst ? parseInt(params.inst) : null)
     const isRecurring = subscriptionId ? true : false
 
-    console.log("Allpay webhook received:", {
-      orderId,
-      statusNum,
-      status,
-      transactionId,
-      subscriptionId,
-      chargeNumber,
-      isRecurring,
-      params,
-    })
+    // Log webhook data (safe - no sensitive keys in params)
+    if (process.env.NODE_ENV === "development") {
+      console.log("Allpay webhook received:", {
+        orderId,
+        statusNum,
+        status,
+        transactionId,
+        subscriptionId,
+        chargeNumber,
+        isRecurring,
+      })
+    }
 
     // Save payment record to database
     try {
