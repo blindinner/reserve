@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
   const searchParams = useSearchParams()
   const orderId = searchParams.get("order_id")
   const [isLoading, setIsLoading] = useState(true)
@@ -71,6 +71,22 @@ export default function PaymentSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FFF0DC] flex items-center justify-center px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="bg-white rounded-xl shadow-lg border border-[#F0BB78]/20 p-8 md:p-12">
+            <p className="text-lg text-[#543A14]/70">Loading...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   )
 }
 
