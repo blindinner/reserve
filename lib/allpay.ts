@@ -52,12 +52,23 @@ export function generateAllpaySignature(params: Record<string, any>, apiKey: str
       })
     } else {
       // Handle non-array, non-object parameters
-      // Only include non-empty string values, excluding 'sign'
-      if (typeof value === "string" && value.trim() !== "" && key !== "sign") {
-        chunks.push(value)
+      // Convert all values to strings for signature calculation
+      // Exclude empty strings and the 'sign' parameter
+      let stringValue: string
+      if (value === null || value === undefined) {
+        // Skip null/undefined values
+        return
+      } else if (typeof value === "boolean") {
+        stringValue = value ? "1" : "0"
+      } else if (typeof value === "number") {
+        stringValue = value.toString()
+      } else {
+        stringValue = String(value)
       }
-      // Note: Numbers and booleans are converted to strings in the request,
-      // but the signature should use string values only
+      
+      if (key !== "sign" && stringValue.trim() !== "") {
+        chunks.push(stringValue)
+      }
     }
   })
 

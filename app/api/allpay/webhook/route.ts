@@ -10,33 +10,45 @@ import { updateOrderStatus, createPayment, updateOrder } from "@/lib/db"
  */
 export async function POST(request: NextRequest) {
   try {
-    // Get the request body as form data (Allpay typically sends form-encoded data)
-    const formData = await request.formData()
-    const params: Record<string, any> = {}
+    const contentType = request.headers.get("content-type") || ""
+    let params: Record<string, any> = {}
 
-    // Convert FormData to object
-    for (const [key, value] of formData.entries()) {
-      // Handle arrays (like items)
-      if (key.includes("[") && key.includes("]")) {
-        // Parse array notation like items[0][name]
-        const match = key.match(/^(.+?)\[(\d+)\]\[(.+?)\]$/)
-        if (match) {
-          const arrayName = match[1]
-          const index = parseInt(match[2])
-          const propName = match[3]
+    // Handle both JSON and form data
+    if (contentType.includes("application/json")) {
+      // Allpay sends JSON for subscription notifications
+      params = await request.json()
+      console.log("Webhook received as JSON:", JSON.stringify(params, null, 2))
+    } else {
+      // Fallback to form data
+      const formData = await request.formData()
+      console.log("Webhook received as form data")
 
-          if (!params[arrayName]) {
-            params[arrayName] = []
+      // Convert FormData to object
+      for (const [key, value] of formData.entries()) {
+        // Handle arrays (like items)
+        if (key.includes("[") && key.includes("]")) {
+          // Parse array notation like items[0][name]
+          const match = key.match(/^(.+?)\[(\d+)\]\[(.+?)\]$/)
+          if (match) {
+            const arrayName = match[1]
+            const index = parseInt(match[2])
+            const propName = match[3]
+
+            if (!params[arrayName]) {
+              params[arrayName] = []
+            }
+            if (!params[arrayName][index]) {
+              params[arrayName][index] = {}
+            }
+            params[arrayName][index][propName] = value.toString()
           }
-          if (!params[arrayName][index]) {
-            params[arrayName][index] = {}
-          }
-          params[arrayName][index][propName] = value.toString()
+        } else {
+          params[key] = value.toString()
         }
-      } else {
-        params[key] = value.toString()
       }
     }
+
+    console.log("Parsed webhook params:", JSON.stringify(params, null, 2))
 
     const receivedSign = params.sign
     const apiKey = process.env.ALLPAY_API_KEY
@@ -65,14 +77,19 @@ export async function POST(request: NextRequest) {
 
     // Extract payment information
     const orderId = params.order_id
-    const status = params.status || params.payment_status
-    const transactionId = params.transaction_id || params.payment_id
+    // Allpay sends status as numeric: 0 = unpaid, 1 = successful payment
+    const statusNum = params.status !== undefined ? parseInt(params.status) : null
+    const status = statusNum === 1 ? "success" : statusNum === 0 ? "pending" : (params.status || params.payment_status || "pending")
+    
+    // For subscriptions, Allpay may send additional fields
+    const transactionId = params.transaction_id || params.payment_id || params.receipt
     const subscriptionId = params.subscription_id
-    const chargeNumber = params.charge_number ? parseInt(params.charge_number) : null
+    const chargeNumber = params.charge_number ? parseInt(params.charge_number) : (params.inst ? parseInt(params.inst) : null)
     const isRecurring = subscriptionId ? true : false
 
     console.log("Allpay webhook received:", {
       orderId,
+      statusNum,
       status,
       transactionId,
       subscriptionId,
@@ -83,21 +100,33 @@ export async function POST(request: NextRequest) {
 
     // Save payment record to database
     try {
-      await createPayment({
+      console.log("Attempting to create payment record:", {
+        order_id: orderId,
+        transaction_id: transactionId,
+        subscription_id: subscriptionId,
+        charge_number: chargeNumber,
+        status: status,
+        amount: params.amount,
+      })
+      
+      const payment = await createPayment({
         order_id: orderId,
         transaction_id: transactionId || undefined,
         subscription_id: subscriptionId || undefined,
         charge_number: chargeNumber || undefined,
-        status: status || "pending",
+        status: status,
         amount: params.amount ? parseFloat(params.amount) : undefined,
         currency: params.currency || "ILS",
         is_recurring: isRecurring,
         webhook_data: params,
       })
+      
+      console.log("Payment record created successfully:", payment)
 
       // Update order status based on payment status
+      // Allpay status: 1 = successful payment, 0 = unpaid/failed
       let orderStatus = "pending"
-      if (status === "success" || status === "approved" || status === "completed") {
+      if (statusNum === 1 || status === "success" || status === "approved" || status === "completed") {
         // For subscriptions, mark as "active" after first successful payment
         if (isRecurring && subscriptionId) {
           orderStatus = "active"
@@ -108,7 +137,7 @@ export async function POST(request: NextRequest) {
         } else {
           orderStatus = "paid"
         }
-      } else if (status === "failed" || status === "rejected" || status === "cancelled") {
+      } else if (statusNum === 0 || status === "failed" || status === "rejected" || status === "cancelled") {
         orderStatus = "failed"
       }
 
@@ -138,5 +167,18 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * GET endpoint for testing webhook accessibility
+ */
+export async function GET() {
+  return NextResponse.json(
+    { 
+      message: "Webhook endpoint is accessible",
+      timestamp: new Date().toISOString(),
+    },
+    { status: 200 }
+  )
 }
 
