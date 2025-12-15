@@ -65,6 +65,14 @@ export function generateAllpaySignature(params: Record<string, any>, apiKey: str
   // Step 5: Append API key with colon
   const signatureString = chunks.join(":") + ":" + apiKey
 
+  // Debug logging (remove in production)
+  console.log("Signature generation debug:")
+  console.log("  Sorted keys:", sortedKeys)
+  console.log("  Chunks (values):", chunks)
+  console.log("  Signature string (without key):", chunks.join(":"))
+  console.log("  Signature string (WITH key - for verification):", signatureString)
+  console.log("  Final signature (SHA256):", crypto.createHash("sha256").update(signatureString).digest("hex"))
+
   // Step 6: Apply SHA256
   return crypto.createHash("sha256").update(signatureString).digest("hex")
 }

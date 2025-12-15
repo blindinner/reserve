@@ -191,32 +191,6 @@ export async function getOrderByOrderId(orderId: string) {
 }
 
 /**
- * Update order with reservation details
- */
-export async function updateOrder(orderId: string, data: Partial<OrderData>) {
-  if (!supabaseAdmin) {
-    throw new Error("Supabase admin client not configured")
-  }
-
-  const { data: order, error } = await supabaseAdmin
-    .from("orders")
-    .update({
-      ...data,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("order_id", orderId)
-    .select()
-    .single()
-
-  if (error) {
-    console.error("Error updating order:", error)
-    throw error
-  }
-
-  return order
-}
-
-/**
  * Create payment record
  */
 export async function createPayment(data: PaymentData) {

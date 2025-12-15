@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get base URL for callback URLs
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
+    // Get base URL for callback URLs (remove trailing slash)
+    const baseUrlRaw = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
+    const baseUrl = baseUrlRaw.replace(/\/$/, "") // Remove trailing slash if present
 
     // Determine currency (default ILS)
     const currency = process.env.ALLPAY_CURRENCY || "ILS"
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       },
     ]
 
-    // Build subscription parameters
+    // Build subscription parameters (as strings for signature generation)
     // For monthly subscriptions, we'll use:
     // - start_type: 1 (immediately) - charge right away
     // - end_type: 1 (infinite) - continue until cancelled
@@ -81,14 +82,17 @@ export async function POST(request: NextRequest) {
       backlink_url: `${baseUrl}`,
       client_name: `${firstName} ${lastName}`.trim(),
       client_email: email,
-      client_phone: phoneNumber || "",
+      ...(phoneNumber ? { client_phone: phoneNumber } : {}), // Only include if not empty
     }
+
+    console.log("Creating Allpay subscription request for order:", orderId)
+    console.log("Payment params (for signature):", JSON.stringify(paymentParams, null, 2))
+    console.log("API Key (first 10 chars):", apiKey.substring(0, 10) + "...")
 
     // Generate signature (all values should already be strings)
     const sign = generateAllpaySignature(paymentParams, apiKey)
-    paymentParams.sign = sign
-
-    console.log("Creating Allpay subscription request for order:", orderId)
+    
+    console.log("Generated signature:", sign)
 
     // Convert items to proper format (numbers for API, but strings were used for signature)
     const requestBody = {
@@ -96,13 +100,13 @@ export async function POST(request: NextRequest) {
       order_id: orderId,
       items: items.map(item => ({
         name: item.name,
-        qty: parseInt(item.qty),
-        price: parseFloat(item.price),
-        vat: parseInt(item.vat),
+        qty: item.qty, // Keep as string to match Allpay tester format
+        price: item.price, // Keep as string to match Allpay tester format  
+        vat: item.vat, // Keep as string to match Allpay tester format
       })),
       subscription: {
-        start_type: parseInt(subscription.start_type),
-        end_type: parseInt(subscription.end_type),
+        start_type: subscription.start_type, // Keep as string to match Allpay tester format
+        end_type: subscription.end_type, // Keep as string to match Allpay tester format
       },
       currency: currency,
       lang: lang,
@@ -111,7 +115,7 @@ export async function POST(request: NextRequest) {
       backlink_url: `${baseUrl}`,
       client_name: `${firstName} ${lastName}`.trim(),
       client_email: email,
-      client_phone: phoneNumber || "",
+      ...(phoneNumber ? { client_phone: phoneNumber } : {}), // Only include if not empty
       sign: sign,
     }
 

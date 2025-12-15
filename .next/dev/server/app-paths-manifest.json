@@ -1,4 +1,6 @@
 {
+  "/api/allpay/create-payment/route": "app/api/allpay/create-payment/route.js",
+  "/api/onboarding/route": "app/api/onboarding/route.js",
   "/onboarding/page": "app/onboarding/page.js",
   "/page": "app/page.js"
 }

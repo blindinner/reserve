@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateAllpaySignature } from "@/lib/allpay"
 import { updateOrderStatus, createPayment, updateOrder } from "@/lib/db"
-import { updateOrderStatus, createPayment, getOrderByOrderId } from "@/lib/db"
 
 /**
  * Webhook endpoint to receive payment notifications from Allpay
