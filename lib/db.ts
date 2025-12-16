@@ -15,6 +15,9 @@ export interface OrderData {
   billing_frequency: string
   amount?: number
   status?: string
+  subscription_id?: string
+  next_charge_date?: string | Date // ISO date string or Date object
+  last_payment_date?: string | Date // ISO date string or Date object
   reservation_with?: string
   number_of_people?: number
   preferred_day?: string

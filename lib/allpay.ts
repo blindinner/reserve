@@ -33,9 +33,20 @@ export function generateAllpaySignature(params: Record<string, any>, apiKey: str
           const sortedItemKeys = Object.keys(item).sort()
           sortedItemKeys.forEach((name) => {
             const val = item[name]
-            // Only include non-empty string values (as per Allpay spec)
-            if (typeof val === "string" && val.trim() !== "") {
-              chunks.push(val)
+            // Convert to string and include non-empty values (as per Allpay spec)
+            let stringVal: string
+            if (val === null || val === undefined) {
+              return // Skip null/undefined
+            } else if (typeof val === "boolean") {
+              stringVal = val ? "1" : "0"
+            } else if (typeof val === "number") {
+              stringVal = val.toString()
+            } else {
+              stringVal = String(val)
+            }
+            
+            if (stringVal.trim() !== "") {
+              chunks.push(stringVal)
             }
           })
         }

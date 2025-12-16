@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS orders (
   status VARCHAR(50) NOT NULL DEFAULT 'pending', -- 'pending', 'paid', 'failed', 'cancelled', 'active', 'cancelled'
   subscription_id VARCHAR(255), -- Allpay subscription ID (if applicable)
   is_subscription BOOLEAN DEFAULT true, -- Whether this is a subscription order
+  next_charge_date DATE, -- Expected date of next recurring charge (for subscription tracking)
+  last_payment_date DATE, -- Date of last successful payment received via webhook
   reservation_with VARCHAR(100), -- 'spouse', 'kids', etc.
   number_of_people INTEGER,
   preferred_day VARCHAR(20), -- 'monday', 'tuesday', etc.
@@ -41,6 +43,8 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE INDEX IF NOT EXISTS idx_orders_order_id ON orders(order_id);
 CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_subscription_id ON orders(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_orders_next_charge_date ON orders(next_charge_date) WHERE next_charge_date IS NOT NULL;
 
 -- Payments table (for tracking payment status from webhooks)
 CREATE TABLE IF NOT EXISTS payments (
