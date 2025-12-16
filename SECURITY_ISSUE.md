@@ -6,11 +6,11 @@ The `.env.local` file containing your API keys was committed to git in multiple 
 
 ### Exposed Keys (ROTATE ALL OF THESE):
 
-1. **ALLPAY_API_KEY** - `33ED8EA125953055F94180B699503658`
-   - Action: Generate new API key in Allpay dashboard
+1. **ALLPAY_API_KEY** - `[EXPOSED KEY - ALREADY ROTATED]`
+   - Action: ✅ Already rotated - Generate new API key in Allpay dashboard
    
-2. **RESEND_API_KEY** - `re_9eSbzS9j_DoMCHVyV4w89iiM9Tcf35qWM`
-   - Action: Generate new API key in Resend dashboard
+2. **RESEND_API_KEY** - `[EXPOSED KEY - ALREADY ROTATED]`
+   - Action: ✅ Already rotated - Generate new API key in Resend dashboard
    
 3. **SUPABASE_SERVICE_ROLE_KEY** (CRITICAL!)
    - Action: Generate new service role key in Supabase dashboard
