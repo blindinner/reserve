@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,6 +28,7 @@ interface AddressSuggestion {
 
 export function OnboardingForm() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const planParam = searchParams.get("plan") || "biweekly"
   const billingParam = searchParams.get("billing") || "annual"
   
@@ -442,9 +443,10 @@ export function OnboardingForm() {
         // Continue anyway - payment is created
       }
 
-      // Redirect to Allpay payment page
+      // Navigate to payment page with iframe
       if (paymentData.paymentUrl) {
-        window.location.href = paymentData.paymentUrl
+        const paymentPageUrl = `/payment?payment_url=${encodeURIComponent(paymentData.paymentUrl)}&order_id=${encodeURIComponent(orderId)}`
+        router.push(paymentPageUrl)
       } else {
         throw new Error("No payment URL received")
       }
