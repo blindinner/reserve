@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      console.log("Webhook received as JSON")
+      console.log("✅ Webhook received as JSON from Allpay")
+      console.log("Webhook payload keys:", Object.keys(params))
     } else {
       // Fallback to form data
       const formData = await request.formData()
@@ -72,18 +73,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("Parsed webhook params")
+    console.log("📦 Parsed webhook params - Order ID:", params.order_id, "Status:", params.status)
 
     const receivedSign = params.sign
     const apiKey = process.env.ALLPAY_API_KEY
 
     if (!apiKey) {
-      console.error("ALLPAY_API_KEY not set")
+      console.error("❌ ALLPAY_API_KEY not set in environment variables")
       return NextResponse.json(
         { error: "Webhook not configured" },
         { status: 500 }
       )
     }
+    
+    console.log("🔑 API Key found, verifying signature...")
 
     // Verify signature
     // IMPORTANT: Allpay calculates the signature with items as a STRING (not parsed JSON)
@@ -101,9 +104,9 @@ export async function POST(request: NextRequest) {
     const calculatedSign = generateAllpaySignature(paramsForSignature, apiKey)
 
     if (receivedSign !== calculatedSign) {
-      console.error("Invalid signature in webhook")
-      console.error("Received signature:", receivedSign)
-      console.error("Calculated signature:", calculatedSign)
+      console.error("❌ INVALID SIGNATURE - Webhook rejected")
+      console.error("Received signature:", receivedSign?.substring(0, 20) + "...")
+      console.error("Calculated signature:", calculatedSign?.substring(0, 20) + "...")
       console.error("Order ID:", params.order_id)
       console.error("Status:", params.status)
       // Log params without sensitive data for debugging
@@ -111,15 +114,13 @@ export async function POST(request: NextRequest) {
       delete debugParams.sign
       console.error("Params (no sign):", JSON.stringify(debugParams, null, 2))
       
-      // Still try to process if this is a known order (for debugging)
-      // But return error to Allpay so they retry
       return NextResponse.json(
         { error: "Invalid signature" },
         { status: 401 }
       )
     }
     
-    console.log("✓ Signature verified successfully")
+    console.log("✅ Signature verified successfully - Processing payment...")
 
     // Extract payment information
     const orderId = params.order_id
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     // Save payment record to database
     try {
-      console.log("Attempting to create payment record:", {
+      console.log("💾 Attempting to create payment record:", {
         order_id: orderId,
         transaction_id: transactionId,
         subscription_id: subscriptionId,
@@ -267,9 +268,11 @@ export async function POST(request: NextRequest) {
 
     // Always return success to Allpay (even if processing fails)
     // This prevents Allpay from retrying
+    console.log("✅ Webhook processing complete - Returning 200 OK to Allpay")
     return NextResponse.json({ status: "ok" }, { status: 200 })
   } catch (error) {
-    console.error("Error processing Allpay webhook:", error)
+    console.error("❌ CRITICAL ERROR processing Allpay webhook:", error)
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
     // Still return success to prevent retries
     return NextResponse.json(
       { error: "Internal server error" },
