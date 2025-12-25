@@ -17,13 +17,31 @@ const anticDidone = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Rendeza — Personalized Restaurant Reservations",
+  title: "Rendeza — Quality time automated",
   description:
-    "Luxury restaurant reservation service for busy professionals. We handle your recurring reservations at handpicked restaurants, ensuring you never miss quality time with loved ones.",
-  generator: "v0.app",
+    "We handle the planning. You show up for the moments.",
   icons: {
     icon: "/Claude%20Favicon.ico",
     apple: "/apple-icon.png",
+  },
+  openGraph: {
+    title: "Rendeza — Quality time automated",
+    description: "We handle the planning. You show up for the moments.",
+    images: [
+      {
+        url: "/Rendeza Logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Rendeza Logo",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rendeza — Quality time automated",
+    description: "We handle the planning. You show up for the moments.",
+    images: ["/Rendeza Logo.png"],
   },
 }
 
