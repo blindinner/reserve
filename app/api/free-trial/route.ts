@@ -172,6 +172,17 @@ export async function POST(request: Request) {
     }
     const preferredDayLabel = preferredDay ? (dayLabels[preferredDay] || preferredDay) : ""
 
+    // Convert 24-hour to 12-hour for display
+    const convertTo12Hour = (time24: string): string => {
+      if (!time24) return ""
+      const [hour, minute] = time24.split(":")
+      const hourNum = parseInt(hour)
+      const period = hourNum >= 12 ? "PM" : "AM"
+      let hour12 = hourNum % 12
+      if (hour12 === 0) hour12 = 12
+      return `${hour12}:${minute} ${period}`
+    }
+
     // Helper to get next date for a given day of the week
     const getNextDateForDay = (dayName: string, weeksFromNow: number): Date => {
       const dayMap: { [key: string]: number } = {
@@ -227,13 +238,6 @@ export async function POST(request: Request) {
       scheduleDisplay = `${frequencyLabel} on ${preferredDayLabel}s\nStart Date: ${startDateDisplay}`
     } else if (bookingType === "specific-dates") {
       const entries = Array.isArray(specificDates) ? specificDates : []
-      const reservationWithLabels: Record<string, string> = {
-        spouse: "Spouse",
-        "boyfriend-girlfriend": "Boyfriend / Girlfriend",
-        kids: "Kids",
-        "whole-family": "Whole Family",
-        friend: "Friend",
-      }
 
       scheduleDisplay = entries
         .map((entry: any) => {
@@ -248,17 +252,6 @@ export async function POST(request: Request) {
           return `${dateStr} at ${timeStr}\n  With: ${withLabel}${peopleCount ? ` (${peopleCount} people)` : ""}`
         })
         .join("\n\n")
-    }
-
-    // Convert 24-hour to 12-hour for display
-    const convertTo12Hour = (time24: string): string => {
-      if (!time24) return ""
-      const [hour, minute] = time24.split(":")
-      const hourNum = parseInt(hour)
-      const period = hourNum >= 12 ? "PM" : "AM"
-      let hour12 = hourNum % 12
-      if (hour12 === 0) hour12 = 12
-      return `${hour12}:${minute} ${period}`
     }
 
     console.log("Attempting to send free trial email to benji@rendeza.com...")
@@ -321,13 +314,6 @@ ${additionalInfo ? `Additional Information:\n${additionalInfo}` : ""}
         <p style="margin: 10px 0;"><strong style="color: #543A14;">Selected Dates:</strong></p>
         ${Array.isArray(specificDates) ? specificDates.map((entry: any) => {
             const date = new Date(entry.date)
-            const reservationWithLabels: Record<string, string> = {
-              spouse: "Spouse",
-              "boyfriend-girlfriend": "Boyfriend / Girlfriend",
-              kids: "Kids",
-              "whole-family": "Whole Family",
-              friend: "Friend",
-            }
             const withLabel = reservationWithLabels[entry.reservationWith] || entry.reservationWith
             const peopleCount =
               entry.reservationWith === "spouse" || entry.reservationWith === "boyfriend-girlfriend"
