@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface AddressSuggestion {
   formatted: string
@@ -39,6 +40,7 @@ interface SpecificDateEntry {
 }
 
 export function FreeTrialForm() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -69,6 +71,7 @@ export function FreeTrialForm() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 3
+  const [addressVerified, setAddressVerified] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -164,6 +167,8 @@ export function FreeTrialForm() {
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setFormData({ ...formData, address: value })
+    // Unverify address if user types (modifies the selected address)
+    setAddressVerified(false)
 
     // Debounce API calls
     if (debounceTimerRef.current) {
@@ -180,6 +185,7 @@ export function FreeTrialForm() {
     setFormData({ ...formData, address: suggestion.formatted })
     setShowSuggestions(false)
     setSuggestions([])
+    setAddressVerified(true) // Mark address as verified when user selects from suggestions
   }
 
   // Determine if we should show the number of people field
@@ -428,13 +434,14 @@ export function FreeTrialForm() {
   // Validate current step
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      // Step 1: Personal Info
+      // Step 1: Personal Info - address must be verified (selected from autocomplete)
       return (
         formData.firstName &&
         formData.lastName &&
         formData.email &&
         formData.phoneNumber &&
-        formData.address
+        formData.address &&
+        addressVerified
       )
     } else if (currentStep === 2) {
       // Step 2: Reservation Preferences
@@ -577,34 +584,11 @@ export function FreeTrialForm() {
       console.log("Form submitted successfully:", data)
 
       setSubmitStatus("success")
-      // Reset form after success
+
+      // Redirect to homepage after a brief delay to show success message
       setTimeout(() => {
-        setFormData({
-          firstName: "",
-          lastName: "",
-          phoneNumber: "",
-          email: "",
-          address: "",
-          reservationWith: "",
-          numberOfPeople: "",
-          bookingType: "recurring",
-          frequency: "",
-          preferredDay: "",
-          preferredTime: "18:00",
-          startDateOption: "",
-          defaultPreferredTime: "18:00",
-          specificDates: [] as SpecificDateEntry[],
-          editingDateIndex: -1,
-          additionalInfo: "",
-          favoriteRestaurants: "",
-          restaurantsToTry: "",
-          dietaryRestrictions: "",
-          cuisinesToAvoid: "",
-          additionalNotes: "",
-        })
-        setCurrentStep(1)
-        setSubmitStatus("idle")
-      }, 5000)
+        router.push("/")
+      }, 2000)
     } catch (error) {
       console.error("Error submitting form:", error)
       setSubmitStatus("error")
@@ -659,18 +643,18 @@ export function FreeTrialForm() {
               <div className="flex flex-col items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors ${currentStep === step.number
-                      ? "bg-[#F0BB78] text-[#543A14]"
-                      : currentStep > step.number
-                        ? "bg-[#F0BB78]/30 text-[#543A14]"
-                        : "bg-[#F0BB78]/10 text-[#543A14]/50"
+                    ? "bg-[#F0BB78] text-[#543A14]"
+                    : currentStep > step.number
+                      ? "bg-[#F0BB78]/30 text-[#543A14]"
+                      : "bg-[#F0BB78]/10 text-[#543A14]/50"
                     }`}
                 >
                   {step.number}
                 </div>
                 <span
                   className={`text-xs mt-2 font-medium hidden md:block ${currentStep === step.number
-                      ? "text-[#543A14]"
-                      : "text-[#543A14]/50"
+                    ? "text-[#543A14]"
+                    : "text-[#543A14]/50"
                     }`}
                 >
                   {step.title}
@@ -679,8 +663,8 @@ export function FreeTrialForm() {
               {index < stepLabels.length - 1 && (
                 <div
                   className={`h-px w-12 md:w-20 transition-colors ${currentStep > step.number
-                      ? "bg-[#F0BB78]"
-                      : "bg-[#F0BB78]/20"
+                    ? "bg-[#F0BB78]"
+                    : "bg-[#F0BB78]/20"
                     }`}
                 />
               )}
@@ -708,6 +692,10 @@ export function FreeTrialForm() {
             // Allow Enter in textareas (they handle their own Enter for new lines)
             if (target.tagName === "TEXTAREA") {
               return // Let textarea handle Enter naturally
+            }
+            // Allow Enter in address input (for autocomplete suggestions and normal input behavior)
+            if (target.id === "address") {
+              return // Let address input handle Enter naturally for autocomplete
             }
             // Prevent Enter from submitting form in all other cases
             e.preventDefault()
@@ -798,11 +786,27 @@ export function FreeTrialForm() {
                         }
                       }}
                       required
-                      className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                      className={`h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 ${addressVerified && formData.address ? "border-green-500/50" : ""
+                        }`}
                     />
-                    {isLoading && (
+                    {isLoading && !addressVerified && (
                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
                         <div className="w-5 h-5 border-2 border-[#F0BB78] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {addressVerified && formData.address && !isLoading && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <svg
+                          className="w-5 h-5 text-green-500"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
                       </div>
                     )}
                     {showSuggestions && suggestions.length > 0 && (
@@ -828,6 +832,11 @@ export function FreeTrialForm() {
                       </div>
                     )}
                   </div>
+                  {formData.address && !addressVerified && (
+                    <p className="text-sm text-amber-600 mt-1">
+                      Please select an address from the suggestions above to continue.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1053,8 +1062,8 @@ export function FreeTrialForm() {
                             type="button"
                             onClick={() => setFormData({ ...formData, startDateOption: "this-week" })}
                             className={`p-4 rounded-lg border-2 transition-all text-left ${formData.startDateOption === "this-week"
-                                ? "border-[#F0BB78] bg-[#F0BB78]/10"
-                                : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
+                              ? "border-[#F0BB78] bg-[#F0BB78]/10"
+                              : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
                               }`}
                           >
                             <div className="font-medium text-[#543A14] mb-1">
@@ -1069,8 +1078,8 @@ export function FreeTrialForm() {
                             type="button"
                             onClick={() => setFormData({ ...formData, startDateOption: "next-week" })}
                             className={`p-4 rounded-lg border-2 transition-all text-left ${formData.startDateOption === "next-week"
-                                ? "border-[#F0BB78] bg-[#F0BB78]/10"
-                                : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
+                              ? "border-[#F0BB78] bg-[#F0BB78]/10"
+                              : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
                               }`}
                           >
                             <div className="font-medium text-[#543A14] mb-1">
@@ -1498,7 +1507,7 @@ export function FreeTrialForm() {
                   Additional Notes (Optional)
                 </Label>
                 <p className="text-xs text-[#543A14]/60">
-                If there is something we haven't asked and you want to share with us to make your experience better, now is the time
+                  If there is something we haven't asked and you want to share with us to make your experience better, now is the time
                 </p>
                 <Textarea
                   id="additionalNotes"

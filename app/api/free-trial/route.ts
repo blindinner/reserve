@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { NextResponse } from "next/server"
+import { createSupabaseAdminClient } from "@/lib/supabase"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -254,6 +255,49 @@ export async function POST(request: Request) {
         .join("\n\n")
     }
 
+    // Save to Supabase database
+    let dbRecordId: string | null = null
+    try {
+      const supabase = createSupabaseAdminClient()
+
+      const { data: dbData, error: dbError } = await supabase
+        .from('free_trial')
+        .insert({
+          first_name: firstName,
+          last_name: lastName,
+          email: email,
+          phone_number: phoneNumber,
+          address: address,
+          reservation_with: reservationWith,
+          number_of_people: numberOfPeople || null,
+          booking_type: bookingType,
+          frequency: frequency || null,
+          preferred_day: preferredDay || null,
+          preferred_time: preferredTime,
+          start_date_option: startDateOption || null,
+          specific_dates: bookingType === 'specific-dates' ? specificDates : null,
+          favorite_restaurants: favoriteRestaurants || null,
+          restaurants_to_try: restaurantsToTry || null,
+          dietary_restrictions: dietaryRestrictions || null,
+          cuisines_to_avoid: cuisinesToAvoid || null,
+          additional_notes: additionalNotes || null,
+          additional_info: additionalInfo || null,
+        })
+        .select('id')
+        .single()
+
+      if (dbError) {
+        console.error("Error saving to Supabase:", dbError)
+        // Continue with email even if DB save fails
+      } else {
+        dbRecordId = dbData?.id || null
+        console.log("Successfully saved to Supabase with ID:", dbRecordId)
+      }
+    } catch (dbError) {
+      console.error("Exception while saving to Supabase:", dbError)
+      // Continue with email even if DB save fails
+    }
+
     console.log("Attempting to send free trial email to benji@rendeza.com...")
 
     const plainTextMessage = `New Free Trial Signup
@@ -404,11 +448,118 @@ ${additionalInfo ? `Additional Information:\n${additionalInfo}` : ""}
 
     console.log("Free trial email sent successfully! Resend response:", { id: data?.id, data })
 
-    // Return all submitted data for potential DB storage
+    // Send thank you email to the user
+    let userEmailSent = false
+    try {
+      const userThankYouMessage = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 30px;">
+    <h2 style="color: #543A14; margin-top: 0; font-family: serif;">Thank You, ${firstName}!</h2>
+    
+    <p style="color: #333; font-size: 16px; line-height: 1.8;">
+      We're thrilled that you've signed up for your free month with Rendeza! 
+    </p>
+    
+    <p style="color: #333; font-size: 16px; line-height: 1.8;">
+      We've received your reservation preferences and we're getting everything ready for you. Our team will be in touch soon to activate your free month and ensure everything is perfectly tailored to your needs.
+    </p>
+    
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 30px 0; border-left: 4px solid #F0BB78;">
+      <h3 style="color: #543A14; margin-top: 0;">What Happens Next?</h3>
+      <p style="color: #333; margin: 10px 0; font-size: 15px;">
+        ✓ We'll review your preferences and dietary requirements<br>
+        ✓ We'll start planning your reservations<br>
+        ✓ You'll receive confirmation details for each booking<br>
+        ✓ Your reservations will be automatically added to your calendar
+      </p>
+    </div>
+    
+    <p style="color: #333; font-size: 16px; line-height: 1.8;">
+      If you have any questions or need to make changes, just reply to this email or reach out to us anytime.
+    </p>
+    
+    <p style="color: #333; font-size: 16px; line-height: 1.8; margin-top: 30px;">
+      Welcome to Rendeza. We're excited to help you make time for what matters most.
+    </p>
+    
+    <p style="color: #543A14; font-size: 16px; margin-top: 30px;">
+      Best regards,<br>
+      <strong>The Rendeza Team</strong>
+    </p>
+  </div>
+</body>
+</html>
+      `
+
+      const userPlainTextMessage = `Thank You, ${firstName}!
+
+We're thrilled that you've signed up for your free month with Rendeza!
+
+We've received your reservation preferences and we're getting everything ready for you. Our team will be in touch soon to activate your free month and ensure everything is perfectly tailored to your needs.
+
+What Happens Next?
+✓ We'll review your preferences and dietary requirements
+✓ We'll start planning your reservations
+✓ You'll receive confirmation details for each booking
+✓ Your reservations will be automatically added to your calendar
+
+If you have any questions or need to make changes, just reply to this email or reach out to us anytime.
+
+Welcome to Rendeza. We're excited to help you make time for what matters most.
+
+Best regards,
+The Rendeza Team
+      `
+
+      const { data: userEmailData, error: userEmailError } = await resend.emails.send({
+        from: "Rendeza <contact@rendeza.com>",
+        to: email,
+        subject: `Welcome to Rendeza, ${firstName}! Your Free Month Starts Now`,
+        html: userThankYouMessage,
+        text: userPlainTextMessage,
+        replyTo: "benji@rendeza.com",
+      })
+
+      if (userEmailError) {
+        console.error("Error sending thank you email to user:", userEmailError)
+      } else {
+        userEmailSent = true
+        console.log("Thank you email sent successfully to user:", email)
+      }
+    } catch (userEmailError) {
+      console.error("Exception while sending thank you email:", userEmailError)
+      // Don't fail the request if user email fails
+    }
+
+    // Update Supabase record with email status if we have a record ID
+    if (dbRecordId && data?.id) {
+      try {
+        const supabase = createSupabaseAdminClient()
+        await supabase
+          .from('free_trial')
+          .update({
+            email_sent: true,
+            email_id: data.id,
+          })
+          .eq('id', dbRecordId)
+      } catch (updateError) {
+        console.error("Error updating email status in Supabase:", updateError)
+        // Don't fail the request if update fails
+      }
+    }
+
+    // Return all submitted data
     return NextResponse.json(
       {
         message: "Form submitted successfully",
         id: data?.id,
+        dbId: dbRecordId,
         data: {
           firstName,
           lastName,
