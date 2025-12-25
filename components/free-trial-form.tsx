@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge"
+import { CalendarIcon, X } from "lucide-react"
+import { format } from "date-fns"
 import Link from "next/link"
 
 interface AddressSuggestion {
@@ -25,6 +30,14 @@ interface AddressSuggestion {
   postcode?: string
 }
 
+interface SpecificDateEntry {
+  date: Date
+  time: string // 24-hour format
+  reservationWith: string
+  numberOfPeople: string
+  isCustomized?: boolean // Whether user has customized this date's settings
+}
+
 export function FreeTrialForm() {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -34,16 +47,28 @@ export function FreeTrialForm() {
     address: "",
     reservationWith: "",
     numberOfPeople: "",
+    bookingType: "recurring", // "recurring" or "specific-dates"
+    frequency: "", // "weekly" or "biweekly" (for recurring)
     preferredDay: "",
     preferredTime: "18:00", // Default to 6 PM
-    startDateOption: "", // "this-week" or "next-week"
+    startDateOption: "", // "this-week" or "next-week" (for recurring)
+    defaultPreferredTime: "18:00", // Default time for specific dates
+    specificDates: [] as SpecificDateEntry[], // Array of date entries with individual settings
+    editingDateIndex: -1, // Track which date is being edited (-1 means none)
     additionalInfo: "",
+    favoriteRestaurants: "",
+    restaurantsToTry: "",
+    dietaryRestrictions: "",
+    cuisinesToAvoid: "",
+    additionalNotes: "",
   })
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [currentStep, setCurrentStep] = useState(1)
+  const totalSteps = 3
   const addressInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -92,18 +117,18 @@ export function FreeTrialForm() {
     setIsLoading(true)
     try {
       const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query.trim())}&apiKey=${apiKey}&limit=5`
-      
+
       const response = await fetch(url, {
         signal: abortController.signal
       })
-      
+
       if (!response.ok) {
         if (response.status !== 400) {
           console.error(`HTTP error! status: ${response.status}`)
         }
         return
       }
-      
+
       const data = await response.json()
 
       if (data.features && Array.isArray(data.features) && data.features.length > 0) {
@@ -163,14 +188,6 @@ export function FreeTrialForm() {
     formData.reservationWith === "whole-family" ||
     formData.reservationWith === "friend"
 
-  // Auto-set number of people for spouse/partner
-  const handleReservationWithChange = (value: string) => {
-    if (value === "spouse" || value === "boyfriend-girlfriend") {
-      setFormData({ ...formData, reservationWith: value, numberOfPeople: "2" })
-    } else {
-      setFormData({ ...formData, reservationWith: value, numberOfPeople: "" })
-    }
-  }
 
   // Calculate final number of people for display
   const finalNumberOfPeople =
@@ -240,34 +257,314 @@ export function FreeTrialForm() {
     return `${hour24.toString().padStart(2, "0")}:${minute}`
   }
 
+  // Handle specific dates selection (for multiple mode, receives array of dates)
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    if (!dates) {
+      setFormData((prev) => ({ ...prev, specificDates: [] }))
+      return
+    }
+
+    // Cap at 4 dates
+    const maxDates = dates.slice(0, 4)
+
+    // Sort dates chronologically
+    const sortedDates = [...maxDates].sort((a, b) => a.getTime() - b.getTime())
+
+    setFormData((prev) => {
+      // Keep existing entries for dates that are still selected
+      const existingEntries = prev.specificDates.filter((entry) =>
+        sortedDates.some((d) => d.toDateString() === entry.date.toDateString())
+      )
+
+      // Create new entries for newly added dates using defaults
+      const existingDateStrings = existingEntries.map((e) => e.date.toDateString())
+      const newDates = sortedDates.filter(
+        (d) => !existingDateStrings.includes(d.toDateString())
+      )
+
+      // Determine default number of people based on reservation type
+      const defaultPeople =
+        prev.reservationWith === "spouse" ||
+          prev.reservationWith === "boyfriend-girlfriend"
+          ? "2"
+          : prev.numberOfPeople || ""
+
+      const newEntries: SpecificDateEntry[] = newDates.map((date) => ({
+        date,
+        time: prev.defaultPreferredTime || "18:00",
+        reservationWith: prev.reservationWith || "",
+        numberOfPeople: defaultPeople,
+        isCustomized: false, // Track if user has customized this date
+      }))
+
+      // Combine and sort by date
+      const allEntries = [...existingEntries, ...newEntries].sort(
+        (a, b) => a.date.getTime() - b.date.getTime()
+      )
+
+      return { ...prev, specificDates: allEntries }
+    })
+  }
+
+  // Update defaults and apply to all non-customized dates
+  const updateDefaults = (field: "defaultPreferredTime", value: string) => {
+    setFormData((prev) => {
+      const updates: any = {}
+
+      if (field === "defaultPreferredTime") {
+        // Update time for all non-customized dates
+        const time24 = value.includes("AM") || value.includes("PM")
+          ? convertTo24Hour(value)
+          : value
+        updates.defaultPreferredTime = time24
+        updates.specificDates = prev.specificDates.map((entry) => {
+          if (!entry.isCustomized) {
+            return { ...entry, time: time24 }
+          }
+          return entry
+        })
+      }
+
+      return { ...prev, ...updates }
+    })
+  }
+
+  // Sync reservation preferences to all non-customized dates
+  useEffect(() => {
+    if (formData.bookingType === "specific-dates" && formData.reservationWith) {
+      setFormData((prev) => {
+        const defaultPeople =
+          prev.reservationWith === "spouse" ||
+            prev.reservationWith === "boyfriend-girlfriend"
+            ? "2"
+            : prev.numberOfPeople || ""
+
+        return {
+          ...prev,
+          specificDates: prev.specificDates.map((entry) => {
+            if (!entry.isCustomized) {
+              return {
+                ...entry,
+                reservationWith: prev.reservationWith,
+                numberOfPeople: defaultPeople,
+              }
+            }
+            return entry
+          }),
+        }
+      })
+    }
+  }, [formData.reservationWith, formData.numberOfPeople, formData.bookingType])
+
+  // Remove a specific date
+  const removeDate = (dateToRemove: Date) => {
+    setFormData((prev) => ({
+      ...prev,
+      specificDates: prev.specificDates.filter(
+        (entry) => entry.date.toDateString() !== dateToRemove.toDateString()
+      ),
+    }))
+  }
+
+  // Update a specific date entry's settings (when customizing)
+  const updateDateEntry = (dateIndex: number, field: keyof SpecificDateEntry, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      specificDates: prev.specificDates.map((entry, index) => {
+        if (index === dateIndex) {
+          // Auto-set number of people for spouse/partner
+          if (field === "reservationWith") {
+            if (value === "spouse" || value === "boyfriend-girlfriend") {
+              return { ...entry, [field]: value, numberOfPeople: "2", isCustomized: true }
+            } else {
+              return { ...entry, [field]: value, numberOfPeople: "", isCustomized: true }
+            }
+          }
+          // Handle time conversion for display
+          if (field === "time" && value.includes(":")) {
+            // Check if it's 12-hour format (has AM/PM)
+            if (value.includes("AM") || value.includes("PM")) {
+              const time24 = convertTo24Hour(value)
+              return { ...entry, [field]: time24, isCustomized: true }
+            }
+            // Already 24-hour format
+            return { ...entry, [field]: value, isCustomized: true }
+          }
+          if (field === "numberOfPeople") {
+            return { ...entry, [field]: value, isCustomized: true }
+          }
+          return { ...entry, [field]: value, isCustomized: true }
+        }
+        return entry
+      }),
+    }))
+  }
+
+  // Reset a date back to defaults
+  const resetDateToDefaults = (dateIndex: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      specificDates: prev.specificDates.map((entry, index) => {
+        if (index === dateIndex) {
+          const defaultPeople =
+            prev.reservationWith === "spouse" ||
+              prev.reservationWith === "boyfriend-girlfriend"
+              ? "2"
+              : prev.numberOfPeople || ""
+          return {
+            ...entry,
+            time: prev.defaultPreferredTime || "18:00",
+            reservationWith: prev.reservationWith || "",
+            numberOfPeople: defaultPeople,
+            isCustomized: false,
+          }
+        }
+        return entry
+      }),
+      editingDateIndex: -1,
+    }))
+  }
+
+  // Validate current step
+  const canProceedToNextStep = () => {
+    if (currentStep === 1) {
+      // Step 1: Personal Info
+      return (
+        formData.firstName &&
+        formData.lastName &&
+        formData.email &&
+        formData.phoneNumber &&
+        formData.address
+      )
+    } else if (currentStep === 2) {
+      // Step 2: Reservation Preferences
+      if (formData.bookingType === "recurring") {
+        return (
+          formData.reservationWith &&
+          formData.frequency &&
+          formData.preferredDay &&
+          formData.preferredTime &&
+          formData.startDateOption &&
+          (shouldShowNumberOfPeople ? formData.numberOfPeople : true)
+        )
+      } else {
+        // Specific dates
+        if (!formData.reservationWith || !formData.defaultPreferredTime) return false
+        const needsPeople =
+          formData.reservationWith === "kids" ||
+          formData.reservationWith === "whole-family" ||
+          formData.reservationWith === "friend"
+        if (needsPeople && !formData.numberOfPeople) return false
+        if (formData.specificDates.length === 0) return false
+        return formData.specificDates.every((entry) => {
+          const entryNeedsPeople =
+            entry.reservationWith === "kids" ||
+            entry.reservationWith === "whole-family" ||
+            entry.reservationWith === "friend"
+          return (
+            entry.time &&
+            entry.reservationWith &&
+            (entryNeedsPeople ? entry.numberOfPeople : true)
+          )
+        })
+      }
+    }
+    return true // Step 3 (Additional Info) is optional
+  }
+
+  const handleNext = () => {
+    if (canProceedToNextStep() && currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
   // Validate form
   const canSubmit = () => {
-    return (
+    const baseFields =
       formData.firstName &&
       formData.lastName &&
       formData.email &&
       formData.phoneNumber &&
       formData.address &&
       formData.reservationWith &&
-      formData.preferredDay &&
-      formData.preferredTime &&
-      formData.startDateOption &&
       (shouldShowNumberOfPeople ? formData.numberOfPeople : true)
-    )
+
+    if (formData.bookingType === "recurring") {
+      return (
+        baseFields &&
+        formData.frequency &&
+        formData.preferredDay &&
+        formData.preferredTime &&
+        formData.startDateOption
+      )
+    } else {
+      // Validate that reservation preferences are set (shared with recurring)
+      if (!formData.reservationWith || !formData.defaultPreferredTime) return false
+
+      // Validate number of people if needed
+      const needsPeople =
+        formData.reservationWith === "kids" ||
+        formData.reservationWith === "whole-family" ||
+        formData.reservationWith === "friend"
+
+      if (needsPeople && !formData.numberOfPeople) return false
+
+      // Validate that all specific dates have required fields
+      if (formData.specificDates.length === 0) return false
+
+      return formData.specificDates.every((entry) => {
+        const entryNeedsPeople =
+          entry.reservationWith === "kids" ||
+          entry.reservationWith === "whole-family" ||
+          entry.reservationWith === "friend"
+        return (
+          entry.time &&
+          entry.reservationWith &&
+          (entryNeedsPeople ? entry.numberOfPeople : true)
+        )
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
+
+    // Only submit if we're on the last step
+    if (currentStep !== totalSteps) {
+      return
+    }
+
     setIsSubmitting(true)
     setSubmitStatus("idle")
 
     try {
+      // Serialize Date objects to ISO strings for API submission
+      const submissionData = {
+        ...formData,
+        specificDates: formData.specificDates.map((entry) => ({
+          date: entry.date.toISOString(),
+          time: entry.time,
+          reservationWith: entry.reservationWith,
+          numberOfPeople: entry.numberOfPeople,
+          // Don't send isCustomized and editingDateIndex to API
+        })),
+        editingDateIndex: undefined, // Don't send to API
+      }
+      delete submissionData.editingDateIndex
+
       const response = await fetch("/api/free-trial", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submissionData),
       })
 
       const data = await response.json()
@@ -290,11 +587,22 @@ export function FreeTrialForm() {
           address: "",
           reservationWith: "",
           numberOfPeople: "",
+          bookingType: "recurring",
+          frequency: "",
           preferredDay: "",
           preferredTime: "18:00",
           startDateOption: "",
+          defaultPreferredTime: "18:00",
+          specificDates: [] as SpecificDateEntry[],
+          editingDateIndex: -1,
           additionalInfo: "",
+          favoriteRestaurants: "",
+          restaurantsToTry: "",
+          dietaryRestrictions: "",
+          cuisinesToAvoid: "",
+          additionalNotes: "",
         })
+        setCurrentStep(1)
         setSubmitStatus("idle")
       }, 5000)
     } catch (error) {
@@ -319,6 +627,12 @@ export function FreeTrialForm() {
     sunday: "Sunday",
   }
 
+  const stepLabels = [
+    { number: 1, title: "Personal Info" },
+    { number: 2, title: "Reservation Preferences" },
+    { number: 3, title: "Additional Info" },
+  ]
+
   return (
     <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-4xl mx-auto">
       {/* Header */}
@@ -337,310 +651,905 @@ export function FreeTrialForm() {
         </p>
       </div>
 
+      {/* Step Indicator */}
+      <div className="mb-8">
+        <div className="flex items-center justify-center gap-4 md:gap-8">
+          {stepLabels.map((step, index) => (
+            <React.Fragment key={step.number}>
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors ${currentStep === step.number
+                      ? "bg-[#F0BB78] text-[#543A14]"
+                      : currentStep > step.number
+                        ? "bg-[#F0BB78]/30 text-[#543A14]"
+                        : "bg-[#F0BB78]/10 text-[#543A14]/50"
+                    }`}
+                >
+                  {step.number}
+                </div>
+                <span
+                  className={`text-xs mt-2 font-medium hidden md:block ${currentStep === step.number
+                      ? "text-[#543A14]"
+                      : "text-[#543A14]/50"
+                    }`}
+                >
+                  {step.title}
+                </span>
+              </div>
+              {index < stepLabels.length - 1 && (
+                <div
+                  className={`h-px w-12 md:w-20 transition-colors ${currentStep > step.number
+                      ? "bg-[#F0BB78]"
+                      : "bg-[#F0BB78]/20"
+                    }`}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
       {/* Form */}
-      <form onSubmit={handleSubmit}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          // Only allow submission when explicitly clicking the submit button
+          // This prevents auto-submission on Enter key
+          if (currentStep === totalSteps) {
+            handleSubmit(e)
+          }
+        }}
+        onKeyDown={(e) => {
+          // Prevent form submission on Enter key anywhere
+          // Only allow submission via button click
+          if (e.key === "Enter") {
+            const target = e.target as HTMLElement
+            // Allow Enter in textareas (they handle their own Enter for new lines)
+            if (target.tagName === "TEXTAREA") {
+              return // Let textarea handle Enter naturally
+            }
+            // Prevent Enter from submitting form in all other cases
+            e.preventDefault()
+            e.stopPropagation()
+          }
+        }}
+      >
         <div className="bg-white rounded-xl shadow-lg border border-[#F0BB78]/20 p-6 md:p-8 lg:p-10 space-y-8">
-          {/* Contact Information */}
-          <div>
-            <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
-              Contact Information
-            </h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-sm font-medium text-[#543A14]">
-                  First Name *
-                </Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  required
-                  className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                  placeholder="John"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-sm font-medium text-[#543A14]">
-                  Last Name *
-                </Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  required
-                  className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                  placeholder="Doe"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-[#543A14]">
-                  Email Address *
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                  placeholder="john@example.com"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phoneNumber" className="text-sm font-medium text-[#543A14]">
-                  Phone Number *
-                </Label>
-                <Input
-                  id="phoneNumber"
-                  type="tel"
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  required
-                  className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2 relative">
-                <Label htmlFor="address" className="text-sm font-medium text-[#543A14]">
-                  Address *
-                </Label>
-                <div className="relative">
+          {/* Step 1: Personal Info */}
+          {currentStep === 1 && (
+            <div>
+              <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
+                Personal Information
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-medium text-[#543A14]">
+                    First Name *
+                  </Label>
                   <Input
-                    ref={addressInputRef}
-                    id="address"
-                    placeholder="Start typing your address..."
-                    value={formData.address}
-                    onChange={handleAddressChange}
-                    onFocus={() => {
-                      if (suggestions.length > 0) {
-                        setShowSuggestions(true)
-                      }
-                    }}
+                    id="firstName"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
                     className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                    placeholder="John"
                   />
-                  {isLoading && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      <div className="w-5 h-5 border-2 border-[#F0BB78] border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                  {showSuggestions && suggestions.length > 0 && (
-                    <div
-                      ref={suggestionsRef}
-                      className="absolute z-50 w-full mt-1 bg-white border border-[#F0BB78]/30 rounded-md shadow-lg max-h-60 overflow-auto"
-                    >
-                      {suggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => handleSuggestionSelect(suggestion)}
-                          className="w-full text-left px-4 py-3 hover:bg-[#F0BB78]/10 border-b border-[#F0BB78]/10 last:border-b-0 transition-colors"
-                        >
-                          <div className="text-[#543A14] font-medium">{suggestion.formatted}</div>
-                          {suggestion.city && suggestion.state && (
-                            <div className="text-sm text-[#543A14]/70 mt-1">
-                              {suggestion.city}, {suggestion.state} {suggestion.postcode || ""}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-sm font-medium text-[#543A14]">
+                    Last Name *
+                  </Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    required
+                    className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                    placeholder="Doe"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-[#543A14]">
+                    Email Address *
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                    placeholder="john@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-[#543A14]">
+                    Phone Number *
+                  </Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    required
+                    className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2 relative">
+                  <Label htmlFor="address" className="text-sm font-medium text-[#543A14]">
+                    Address *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      ref={addressInputRef}
+                      id="address"
+                      placeholder="Start typing your address..."
+                      value={formData.address}
+                      onChange={handleAddressChange}
+                      onFocus={() => {
+                        if (suggestions.length > 0) {
+                          setShowSuggestions(true)
+                        }
+                      }}
+                      required
+                      className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                    />
+                    {isLoading && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <div className="w-5 h-5 border-2 border-[#F0BB78] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div
+                        ref={suggestionsRef}
+                        className="absolute z-50 w-full mt-1 bg-white border border-[#F0BB78]/30 rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        {suggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            onClick={() => handleSuggestionSelect(suggestion)}
+                            className="w-full text-left px-4 py-3 hover:bg-[#F0BB78]/10 border-b border-[#F0BB78]/10 last:border-b-0 transition-colors"
+                          >
+                            <div className="text-[#543A14] font-medium">{suggestion.formatted}</div>
+                            {suggestion.city && suggestion.state && (
+                              <div className="text-sm text-[#543A14]/70 mt-1">
+                                {suggestion.city}, {suggestion.state} {suggestion.postcode || ""}
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Reservation Preferences */}
-          <div className="pt-6 border-t border-[#F0BB78]/20">
-            <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
-              Reservation Preferences
-            </h2>
+          {/* Step 2: Reservation Preferences */}
+          {currentStep === 2 && (
+            <div>
+              <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
+                Reservation Preferences
+              </h2>
 
-            <div className="space-y-6">
-              {/* Who */}
-              <div className="space-y-3">
-                <Label htmlFor="reservationWith" className="text-sm font-medium text-[#543A14]">
-                  With who will your reservation be? *
-                </Label>
-                <Select
-                  value={formData.reservationWith}
-                  onValueChange={handleReservationWithChange}
-                  required
-                >
-                  <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
-                    <SelectValue placeholder="Select an option" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-[#F0BB78]/30">
-                    <SelectItem value="spouse" className="text-[#543A14]">Spouse</SelectItem>
-                    <SelectItem value="boyfriend-girlfriend" className="text-[#543A14]">Boyfriend / Girlfriend</SelectItem>
-                    <SelectItem value="kids" className="text-[#543A14]">Kids</SelectItem>
-                    <SelectItem value="whole-family" className="text-[#543A14]">Whole Family</SelectItem>
-                    <SelectItem value="friend" className="text-[#543A14]">Friend</SelectItem>
-                  </SelectContent>
-                </Select>
-                {(formData.reservationWith === "spouse" || formData.reservationWith === "boyfriend-girlfriend") && (
-                  <p className="text-xs text-[#543A14]/60">
-                    Reservation set for 2 people
-                  </p>
-                )}
-              </div>
-
-              {/* Number of People - Conditional */}
-              {shouldShowNumberOfPeople && (
-                <div className="space-y-3">
-                  <Label htmlFor="numberOfPeople" className="text-sm font-medium text-[#543A14]">
-                    How many people? *
+              <div className="space-y-6">
+                {/* Booking Type Selection */}
+                <div className="space-y-4 pb-4 border-b border-[#F0BB78]/20">
+                  <Label className="text-sm font-medium text-[#543A14] block">
+                    How would you like to schedule? *
                   </Label>
-                  <Input
-                    id="numberOfPeople"
-                    type="number"
-                    min="1"
-                    value={formData.numberOfPeople}
-                    onChange={(e) => setFormData({ ...formData, numberOfPeople: e.target.value })}
-                    required
-                    className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                    placeholder="Enter number of people"
-                  />
-                </div>
-              )}
-
-              {/* Day and Time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <Label htmlFor="preferredDay" className="text-sm font-medium text-[#543A14]">
-                    Preferred Day *
-                  </Label>
-                  <Select
-                    value={formData.preferredDay}
-                    onValueChange={(value) => setFormData({ ...formData, preferredDay: value })}
-                    required
+                  <RadioGroup
+                    value={formData.bookingType}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        bookingType: value as "recurring" | "specific-dates",
+                        // Reset related fields when switching
+                        frequency: "",
+                        preferredDay: "",
+                        startDateOption: "",
+                        specificDates: [],
+                        editingDateIndex: -1,
+                      })
+                    }
+                    className="space-y-3"
                   >
-                    <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
-                      <SelectValue placeholder="Day" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-[#F0BB78]/30">
-                      <SelectItem value="monday" className="text-[#543A14]">Monday</SelectItem>
-                      <SelectItem value="tuesday" className="text-[#543A14]">Tuesday</SelectItem>
-                      <SelectItem value="wednesday" className="text-[#543A14]">Wednesday</SelectItem>
-                      <SelectItem value="thursday" className="text-[#543A14]">Thursday</SelectItem>
-                      <SelectItem value="friday" className="text-[#543A14]">Friday</SelectItem>
-                      <SelectItem value="saturday" className="text-[#543A14]">Saturday</SelectItem>
-                      <SelectItem value="sunday" className="text-[#543A14]">Sunday</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <div className="flex items-start space-x-3 space-y-0">
+                      <RadioGroupItem value="recurring" id="recurring" className="mt-1" />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="recurring"
+                          className="text-base font-medium text-[#543A14] cursor-pointer"
+                        >
+                          Recurring Schedule
+                        </Label>
+                        <p className="text-sm text-[#543A14]/70 mt-1">
+                          Weekly or bi-weekly reservations on the same day
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-3 space-y-0">
+                      <RadioGroupItem value="specific-dates" id="specific-dates" className="mt-1" />
+                      <div className="flex-1">
+                        <Label
+                          htmlFor="specific-dates"
+                          className="text-base font-medium text-[#543A14] cursor-pointer"
+                        >
+                          Choose Specific Dates
+                        </Label>
+                        <p className="text-sm text-[#543A14]/70 mt-1">
+                          Select the exact dates you'd like us to book for you
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
                 </div>
 
+                {/* Who - Shared for both booking types */}
                 <div className="space-y-3">
-                  <Label htmlFor="preferredTime" className="text-sm font-medium text-[#543A14]">
-                    Preferred Time *
+                  <Label htmlFor="reservationWith" className="text-sm font-medium text-[#543A14]">
+                    With who will your reservation be? *
                   </Label>
                   <Select
-                    value={formData.preferredTime ? convertTo12Hour(formData.preferredTime) : "6:00 PM"}
+                    value={formData.reservationWith}
                     onValueChange={(value) => {
-                      const time24 = convertTo24Hour(value)
-                      setFormData(prev => ({ ...prev, preferredTime: time24 }))
+                      if (value === "spouse" || value === "boyfriend-girlfriend") {
+                        setFormData({
+                          ...formData,
+                          reservationWith: value,
+                          numberOfPeople: "2",
+                        })
+                      } else {
+                        setFormData({
+                          ...formData,
+                          reservationWith: value,
+                          numberOfPeople: "",
+                        })
+                      }
                     }}
                     required
                   >
                     <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
-                      <SelectValue placeholder="Select time" />
+                      <SelectValue placeholder="Select an option" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-[#F0BB78]/30 max-h-[300px]">
-                      {["AM", "PM"].map((period) =>
-                        Array.from({ length: 12 }, (_, i) => i + 1).map((hour) =>
-                          ["00", "30"].map((minute) => {
-                            const displayTime = `${hour}:${minute} ${period}`
-                            return (
-                              <SelectItem key={displayTime} value={displayTime} className="text-[#543A14]">
-                                {displayTime}
-                              </SelectItem>
-                            )
-                          })
-                        ).flat()
-                      ).flat()}
+                    <SelectContent className="bg-white border-[#F0BB78]/30">
+                      <SelectItem value="spouse" className="text-[#543A14]">Spouse</SelectItem>
+                      <SelectItem value="boyfriend-girlfriend" className="text-[#543A14]">Boyfriend / Girlfriend</SelectItem>
+                      <SelectItem value="kids" className="text-[#543A14]">Kids</SelectItem>
+                      <SelectItem value="whole-family" className="text-[#543A14]">Whole Family</SelectItem>
+                      <SelectItem value="friend" className="text-[#543A14]">Friend</SelectItem>
                     </SelectContent>
                   </Select>
+                  {(formData.reservationWith === "spouse" || formData.reservationWith === "boyfriend-girlfriend") && (
+                    <p className="text-xs text-[#543A14]/60">
+                      Reservation set for 2 people
+                    </p>
+                  )}
                 </div>
+
+                {/* Number of People - Conditional, Shared for both */}
+                {shouldShowNumberOfPeople && (
+                  <div className="space-y-3">
+                    <Label htmlFor="numberOfPeople" className="text-sm font-medium text-[#543A14]">
+                      How many people? *
+                    </Label>
+                    <Input
+                      id="numberOfPeople"
+                      type="number"
+                      min="1"
+                      value={formData.numberOfPeople}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setFormData({
+                          ...formData,
+                          numberOfPeople: value,
+                        })
+                      }}
+                      required
+                      className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                      placeholder="Enter number of people"
+                    />
+                  </div>
+                )}
+
+                {/* Recurring Booking Fields */}
+                {formData.bookingType === "recurring" && (
+                  <>
+                    {/* Frequency Selection */}
+                    <div className="space-y-3 pt-4 border-t border-[#F0BB78]/20">
+                      <Label htmlFor="frequency" className="text-sm font-medium text-[#543A14]">
+                        How often? *
+                      </Label>
+                      <Select
+                        value={formData.frequency}
+                        onValueChange={(value) => setFormData({ ...formData, frequency: value })}
+                        required={formData.bookingType === "recurring"}
+                      >
+                        <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-[#F0BB78]/30">
+                          <SelectItem value="weekly" className="text-[#543A14]">Weekly</SelectItem>
+                          <SelectItem value="biweekly" className="text-[#543A14]">Bi-weekly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Day and Time */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <Label htmlFor="preferredDay" className="text-sm font-medium text-[#543A14]">
+                          Preferred Day *
+                        </Label>
+                        <Select
+                          value={formData.preferredDay}
+                          onValueChange={(value) => setFormData({ ...formData, preferredDay: value })}
+                          required
+                        >
+                          <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
+                            <SelectValue placeholder="Day" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-[#F0BB78]/30">
+                            <SelectItem value="monday" className="text-[#543A14]">Monday</SelectItem>
+                            <SelectItem value="tuesday" className="text-[#543A14]">Tuesday</SelectItem>
+                            <SelectItem value="wednesday" className="text-[#543A14]">Wednesday</SelectItem>
+                            <SelectItem value="thursday" className="text-[#543A14]">Thursday</SelectItem>
+                            <SelectItem value="friday" className="text-[#543A14]">Friday</SelectItem>
+                            <SelectItem value="saturday" className="text-[#543A14]">Saturday</SelectItem>
+                            <SelectItem value="sunday" className="text-[#543A14]">Sunday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label htmlFor="preferredTime" className="text-sm font-medium text-[#543A14]">
+                          Preferred Time *
+                        </Label>
+                        <Select
+                          value={formData.preferredTime ? convertTo12Hour(formData.preferredTime) : "6:00 PM"}
+                          onValueChange={(value) => {
+                            const time24 = convertTo24Hour(value)
+                            setFormData(prev => ({ ...prev, preferredTime: time24 }))
+                          }}
+                          required
+                        >
+                          <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
+                            <SelectValue placeholder="Select time" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-[#F0BB78]/30 max-h-[300px]">
+                            {["AM", "PM"].map((period) =>
+                              Array.from({ length: 12 }, (_, i) => i + 1).map((hour) =>
+                                ["00", "30"].map((minute) => {
+                                  const displayTime = `${hour}:${minute} ${period}`
+                                  return (
+                                    <SelectItem key={displayTime} value={displayTime} className="text-[#543A14]">
+                                      {displayTime}
+                                    </SelectItem>
+                                  )
+                                })
+                              ).flat()
+                            ).flat()}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Start Date Selection */}
+                    {formData.preferredDay && formData.preferredTime && (
+                      <div className="space-y-3 pt-4 border-t border-[#F0BB78]/20">
+                        <Label className="text-sm font-medium text-[#543A14] block">
+                          When would you like to start? *
+                        </Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, startDateOption: "this-week" })}
+                            className={`p-4 rounded-lg border-2 transition-all text-left ${formData.startDateOption === "this-week"
+                                ? "border-[#F0BB78] bg-[#F0BB78]/10"
+                                : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
+                              }`}
+                          >
+                            <div className="font-medium text-[#543A14] mb-1">
+                              This Coming {formData.preferredDay.charAt(0).toUpperCase() + formData.preferredDay.slice(1)}
+                            </div>
+                            <div className="text-sm text-[#543A14]/70">
+                              {formatDate(getNextDateForDay(formData.preferredDay, 0))}
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, startDateOption: "next-week" })}
+                            className={`p-4 rounded-lg border-2 transition-all text-left ${formData.startDateOption === "next-week"
+                                ? "border-[#F0BB78] bg-[#F0BB78]/10"
+                                : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
+                              }`}
+                          >
+                            <div className="font-medium text-[#543A14] mb-1">
+                              The Following {formData.preferredDay.charAt(0).toUpperCase() + formData.preferredDay.slice(1)}
+                            </div>
+                            <div className="text-sm text-[#543A14]/70">
+                              {formatDate(getNextDateForDay(formData.preferredDay, 1))}
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Specific Dates Selection */}
+                {formData.bookingType === "specific-dates" && (
+                  <>
+                    {/* Default Time Preference */}
+                    <div className="space-y-6 pt-4 border-t border-[#F0BB78]/20 pb-4 border-b border-[#F0BB78]/20">
+                      <div>
+                        <Label className="text-sm font-medium text-[#543A14] block mb-1">
+                          Default Time Preference *
+                        </Label>
+                        <p className="text-xs text-[#543A14]/60 mb-4">
+                          Set your preferred time. This will be applied to all selected dates, but you can customize individual dates if needed.
+                        </p>
+                      </div>
+
+                      {/* Default Time */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-[#543A14]">
+                          Preferred Time *
+                        </Label>
+                        <Select
+                          value={
+                            formData.defaultPreferredTime
+                              ? convertTo12Hour(formData.defaultPreferredTime)
+                              : "6:00 PM"
+                          }
+                          onValueChange={(value) => {
+                            const time24 = convertTo24Hour(value)
+                            updateDefaults("defaultPreferredTime", time24)
+                          }}
+                          required
+                        >
+                          <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
+                            <SelectValue placeholder="Select time" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-[#F0BB78]/30 max-h-[300px]">
+                            {["AM", "PM"].map((period) =>
+                              Array.from({ length: 12 }, (_, i) => i + 1).map((hour) =>
+                                ["00", "30"].map((minute) => {
+                                  const displayTime = `${hour}:${minute} ${period}`
+                                  return (
+                                    <SelectItem
+                                      key={displayTime}
+                                      value={displayTime}
+                                      className="text-[#543A14]"
+                                    >
+                                      {displayTime}
+                                    </SelectItem>
+                                  )
+                                })
+                              ).flat()
+                            ).flat()}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Date Selection */}
+                    <div className="space-y-4 pt-4">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-[#543A14] block">
+                          Select Dates (max 4) *
+                        </Label>
+                        <p className="text-xs text-[#543A14]/60">
+                          Select up to 4 dates. Default preferences will be applied automatically.
+                        </p>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal h-12 text-base border-[#F0BB78]/50 hover:border-[#F0BB78] focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 bg-white"
+                              disabled={formData.specificDates.length >= 4}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-[#543A14]" />
+                              {formData.specificDates.length === 0
+                                ? "Pick your dates (max 4)"
+                                : `${formData.specificDates.length} date${formData.specificDates.length > 1 ? "s" : ""} selected${formData.specificDates.length >= 4 ? " (max reached)" : ""}`}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 bg-white border-[#F0BB78]/30" align="start">
+                            <Calendar
+                              mode="multiple"
+                              selected={formData.specificDates.map((entry) => entry.date)}
+                              onSelect={handleDateSelect}
+                              disabled={(date) => {
+                                // Disable past dates
+                                const today = new Date()
+                                today.setHours(0, 0, 0, 0)
+                                // Also disable if we've reached max dates
+                                if (formData.specificDates.length >= 4) {
+                                  const isSelected = formData.specificDates.some(
+                                    (e) => e.date.toDateString() === date.toDateString()
+                                  )
+                                  return date < today || !isSelected
+                                }
+                                return date < today
+                              }}
+                              initialFocus
+                              className="border-0"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        {formData.specificDates.length >= 4 && (
+                          <p className="text-xs text-[#543A14]/60 mt-1">
+                            Maximum of 4 dates reached. Remove a date to select a different one.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Selected Dates Display */}
+                    {formData.specificDates.length > 0 && (
+                      <div className="space-y-4 pt-4 border-t border-[#F0BB78]/20">
+                        <Label className="text-sm font-medium text-[#543A14] block">
+                          Selected Dates
+                        </Label>
+                        {formData.specificDates.map((entry, index) => {
+                          const reservationWithLabels: Record<string, string> = {
+                            spouse: "Spouse",
+                            "boyfriend-girlfriend": "Boyfriend / Girlfriend",
+                            kids: "Kids",
+                            "whole-family": "Whole Family",
+                            friend: "Friend",
+                          }
+                          const withLabel =
+                            reservationWithLabels[entry.reservationWith] ||
+                            entry.reservationWith
+                          const peopleCount =
+                            entry.reservationWith === "spouse" ||
+                              entry.reservationWith === "boyfriend-girlfriend"
+                              ? "2"
+                              : entry.numberOfPeople || ""
+
+                          const isEditing = formData.editingDateIndex === index
+
+                          return (
+                            <div
+                              key={index}
+                              className={`p-4 bg-[#F0BB78]/5 border border-[#F0BB78]/20 rounded-lg ${entry.isCustomized ? "border-[#F0BB78]/50" : ""
+                                }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h4 className="font-medium text-[#543A14]">
+                                      {format(entry.date, "EEEE, MMMM d, yyyy")}
+                                    </h4>
+                                    {entry.isCustomized && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-[#F0BB78]/20 border-[#F0BB78]/50 text-[#543A14]"
+                                      >
+                                        Customized
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {!isEditing ? (
+                                    <div className="space-y-1 text-sm text-[#543A14]/80">
+                                      <p>
+                                        <span className="font-medium">Time:</span>{" "}
+                                        {convertTo12Hour(entry.time)}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">With:</span> {withLabel}
+                                        {peopleCount && ` (${peopleCount} people)`}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-4 mt-4">
+                                      {/* Who */}
+                                      <div className="space-y-2">
+                                        <Label className="text-xs font-medium text-[#543A14]">
+                                          With who? *
+                                        </Label>
+                                        <Select
+                                          value={entry.reservationWith}
+                                          onValueChange={(value) =>
+                                            updateDateEntry(index, "reservationWith", value)
+                                          }
+                                          required
+                                        >
+                                          <SelectTrigger className="h-10 text-sm border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 bg-white">
+                                            <SelectValue placeholder="Select an option" />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-white border-[#F0BB78]/30">
+                                            <SelectItem value="spouse" className="text-[#543A14]">
+                                              Spouse
+                                            </SelectItem>
+                                            <SelectItem
+                                              value="boyfriend-girlfriend"
+                                              className="text-[#543A14]"
+                                            >
+                                              Boyfriend / Girlfriend
+                                            </SelectItem>
+                                            <SelectItem value="kids" className="text-[#543A14]">
+                                              Kids
+                                            </SelectItem>
+                                            <SelectItem
+                                              value="whole-family"
+                                              className="text-[#543A14]"
+                                            >
+                                              Whole Family
+                                            </SelectItem>
+                                            <SelectItem value="friend" className="text-[#543A14]">
+                                              Friend
+                                            </SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      {/* Number of People - Conditional */}
+                                      {(entry.reservationWith === "kids" ||
+                                        entry.reservationWith === "whole-family" ||
+                                        entry.reservationWith === "friend") && (
+                                          <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-[#543A14]">
+                                              How many people? *
+                                            </Label>
+                                            <Input
+                                              type="number"
+                                              min="1"
+                                              value={entry.numberOfPeople}
+                                              onChange={(e) =>
+                                                updateDateEntry(index, "numberOfPeople", e.target.value)
+                                              }
+                                              required
+                                              className="h-10 text-sm border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                                              placeholder="Enter number of people"
+                                            />
+                                          </div>
+                                        )}
+
+                                      {/* Time */}
+                                      <div className="space-y-2">
+                                        <Label className="text-xs font-medium text-[#543A14]">
+                                          Preferred Time *
+                                        </Label>
+                                        <Select
+                                          value={
+                                            entry.time ? convertTo12Hour(entry.time) : "6:00 PM"
+                                          }
+                                          onValueChange={(value) =>
+                                            updateDateEntry(index, "time", value)
+                                          }
+                                          required
+                                        >
+                                          <SelectTrigger className="h-10 text-sm border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 bg-white">
+                                            <SelectValue placeholder="Select time" />
+                                          </SelectTrigger>
+                                          <SelectContent className="bg-white border-[#F0BB78]/30 max-h-[300px]">
+                                            {["AM", "PM"].map((period) =>
+                                              Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                                (hour) =>
+                                                  ["00", "30"].map((minute) => {
+                                                    const displayTime = `${hour}:${minute} ${period}`
+                                                    return (
+                                                      <SelectItem
+                                                        key={displayTime}
+                                                        value={displayTime}
+                                                        className="text-[#543A14]"
+                                                      >
+                                                        {displayTime}
+                                                      </SelectItem>
+                                                    )
+                                                  })
+                                              ).flat()
+                                            ).flat()}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+
+                                      <div className="flex gap-2 pt-2">
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => resetDateToDefaults(index)}
+                                          className="text-xs h-8 border-[#F0BB78]/50 text-[#543A14] hover:bg-[#F0BB78]/10"
+                                        >
+                                          Reset to Defaults
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          onClick={() =>
+                                            setFormData((prev) => ({
+                                              ...prev,
+                                              editingDateIndex: -1,
+                                            }))
+                                          }
+                                          className="text-xs h-8 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14]"
+                                        >
+                                          Done
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-start gap-2 ml-4">
+                                  {!isEditing && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          editingDateIndex: index,
+                                        }))
+                                      }
+                                      className="text-xs h-8 text-[#543A14] hover:bg-[#F0BB78]/20"
+                                    >
+                                      Edit
+                                    </Button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeDate(entry.date)}
+                                    className="text-[#543A14]/60 hover:text-[#543A14] transition-colors p-1"
+                                    aria-label="Remove date"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Additional Info */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
+                Additional Information
+              </h2>
+
+              {/* Favorite Restaurants */}
+              <div className="space-y-3">
+                <Label htmlFor="favoriteRestaurants" className="text-sm font-medium text-[#543A14]">
+                  Favorite Restaurants (Optional)
+                </Label>
+                <Textarea
+                  id="favoriteRestaurants"
+                  placeholder="Tell us about your favorite restaurants"
+                  value={formData.favoriteRestaurants}
+                  onChange={(e) => setFormData({ ...formData, favoriteRestaurants: e.target.value })}
+                  rows={3}
+                  className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                />
               </div>
 
-              {/* Start Date Selection */}
-              {formData.preferredDay && formData.preferredTime && (
-                <div className="space-y-3 pt-4 border-t border-[#F0BB78]/20">
-                  <Label className="text-sm font-medium text-[#543A14] block">
-                    When would you like to start? *
-                  </Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, startDateOption: "this-week" })}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        formData.startDateOption === "this-week"
-                          ? "border-[#F0BB78] bg-[#F0BB78]/10"
-                          : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
-                      }`}
-                    >
-                      <div className="font-medium text-[#543A14] mb-1">
-                        This Coming {formData.preferredDay.charAt(0).toUpperCase() + formData.preferredDay.slice(1)}
-                      </div>
-                      <div className="text-sm text-[#543A14]/70">
-                        {formatDate(getNextDateForDay(formData.preferredDay, 0))}
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, startDateOption: "next-week" })}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        formData.startDateOption === "next-week"
-                          ? "border-[#F0BB78] bg-[#F0BB78]/10"
-                          : "border-[#F0BB78]/30 bg-white hover:border-[#F0BB78]/60"
-                      }`}
-                    >
-                      <div className="font-medium text-[#543A14] mb-1">
-                        The Following {formData.preferredDay.charAt(0).toUpperCase() + formData.preferredDay.slice(1)}
-                      </div>
-                      <div className="text-sm text-[#543A14]/70">
-                        {formatDate(getNextDateForDay(formData.preferredDay, 1))}
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Additional Preferences */}
-              <div className="pt-4 border-t border-[#F0BB78]/20">
-                <Label htmlFor="additionalInfo" className="text-sm font-medium text-[#543A14] block mb-2">
-                  Additional Preferences (Optional)
+              {/* Restaurants to Try */}
+              <div className="space-y-3">
+                <Label htmlFor="restaurantsToTry" className="text-sm font-medium text-[#543A14]">
+                  Any restaurants you'd like us to try and book for you? (Optional)
                 </Label>
-                <p className="text-xs text-[#543A14]/60 mb-3">
-                  Share your preferences, dietary restrictions, favorite cuisines, or specific restaurants you'd like us to try.
+                <Textarea
+                  id="restaurantsToTry"
+                  placeholder="We will do our best to book them for you"
+                  value={formData.restaurantsToTry}
+                  onChange={(e) => setFormData({ ...formData, restaurantsToTry: e.target.value })}
+                  rows={3}
+                  className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                />
+              </div>
+
+              {/* Dietary Restrictions */}
+              <div className="space-y-3">
+                <Label htmlFor="dietaryRestrictions" className="text-sm font-medium text-[#543A14]">
+                  Any Dietary Restrictions? (Optional)
+                </Label>
+                <Textarea
+                  id="dietaryRestrictions"
+                  placeholder="Vegetarian, gluten-free, nut allergies, kosher..."
+                  value={formData.dietaryRestrictions}
+                  onChange={(e) => setFormData({ ...formData, dietaryRestrictions: e.target.value })}
+                  rows={3}
+                  className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                />
+              </div>
+
+              {/* Cuisines/Places to Avoid */}
+              <div className="space-y-3">
+                <Label htmlFor="cuisinesToAvoid" className="text-sm font-medium text-[#543A14]">
+                  Any Type of Cuisine or Specific Place We Should Definitely Avoid? (Optional)
+                </Label>
+                <p className="text-xs text-[#543A14]/60">
+                  Help us avoid cuisines or restaurants you prefer not to visit
                 </p>
                 <Textarea
-                  id="additionalInfo"
-                  placeholder="I love Italian and French cuisine. I'm vegetarian and prefer quieter, intimate settings..."
-                  value={formData.additionalInfo}
-                  onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
+                  id="cuisinesToAvoid"
+                  value={formData.cuisinesToAvoid}
+                  onChange={(e) => setFormData({ ...formData, cuisinesToAvoid: e.target.value })}
+                  rows={3}
+                  className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                />
+              </div>
+
+              {/* Additional Notes */}
+              <div className="space-y-3">
+                <Label htmlFor="additionalNotes" className="text-sm font-medium text-[#543A14]">
+                  Additional Notes (Optional)
+                </Label>
+                <p className="text-xs text-[#543A14]/60">
+                If there is something we haven't asked and you want to share with us to make your experience better, now is the time
+                </p>
+                <Textarea
+                  id="additionalNotes"
+                  value={formData.additionalNotes}
+                  onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
                   rows={4}
                   className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
                 />
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Submit Button */}
+          {/* Navigation Buttons */}
           <div className="pt-6 border-t border-[#F0BB78]/20">
-            <Button
-              type="submit"
-              disabled={isSubmitting || !canSubmit()}
-              className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
-            >
-              {isSubmitting ? "Submitting..." : "Claim Your Free Month"}
-            </Button>
+            <div className="flex gap-4">
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  className="flex-1 border-[#F0BB78]/50 text-[#543A14] hover:bg-[#F0BB78]/10 h-12 font-medium"
+                >
+                  Back
+                </Button>
+              )}
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canProceedToNextStep()}
+                  className="flex-1 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (currentStep === totalSteps && canSubmit() && !isSubmitting) {
+                      handleSubmit(e as any)
+                    }
+                  }}
+                  disabled={isSubmitting || !canSubmit()}
+                  className="flex-1 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
+                >
+                  {isSubmitting ? "Submitting..." : "Claim Your Free Month"}
+                </Button>
+              )}
+            </div>
 
             {submitStatus === "success" && (
               <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
