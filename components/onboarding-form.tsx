@@ -3,6 +3,7 @@
 import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import Script from "next/script"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -181,6 +182,18 @@ export function OnboardingForm() {
   const [timePeriod, setTimePeriod] = useState<"AM" | "PM">("PM")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null)
+  const [isPaymentReady, setIsPaymentReady] = useState(false)
+  const allpayRef = useRef<any>(null)
+  const iframeId = "allpay-payment-iframe-onboarding"
+
+  // Declare AllpayPayment type
+  declare global {
+    interface Window {
+      AllpayPayment: any
+    }
+  }
 
   // Determine if we should show the number of people field
   const shouldShowNumberOfPeople =
@@ -443,10 +456,11 @@ export function OnboardingForm() {
         // Continue anyway - payment is created
       }
 
-      // Navigate to payment page with iframe
+      // Set payment URL to show iframe on same page
       if (paymentData.paymentUrl) {
-        const paymentPageUrl = `/payment?payment_url=${encodeURIComponent(paymentData.paymentUrl)}&order_id=${encodeURIComponent(orderId)}`
-        router.push(paymentPageUrl)
+        setPaymentUrl(paymentData.paymentUrl)
+        setCurrentOrderId(orderId)
+        setIsPaymentReady(true)
       } else {
         throw new Error("No payment URL received")
       }
@@ -494,9 +508,69 @@ export function OnboardingForm() {
     }
   }, [billingFrequency])
 
+  // Initialize Allpay when payment URL is ready
+  useEffect(() => {
+    if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment && !allpayRef.current) {
+      try {
+        allpayRef.current = new window.AllpayPayment({
+          iframeId: iframeId,
+          onSuccess: function () {
+            // Redirect to success page
+            router.push(`/payment/success?order_id=${currentOrderId || ""}`)
+          },
+          onError: function (error_n: number, error_msg: string) {
+            console.error("Payment error:", error_n, error_msg)
+            setSubmitStatus("error")
+            setIsPaymentReady(false)
+            setPaymentUrl(null)
+          },
+        })
+        // Scroll to payment section smoothly
+        setTimeout(() => {
+          const paymentSection = document.getElementById(iframeId)
+          if (paymentSection) {
+            paymentSection.scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+        }, 300)
+      } catch (err) {
+        console.error("Error initializing Allpay:", err)
+        setSubmitStatus("error")
+        setIsPaymentReady(false)
+        setPaymentUrl(null)
+      }
+    }
+  }, [isPaymentReady, paymentUrl, currentOrderId, router])
+
   return (
-    <div className="min-h-screen bg-[#FFF0DC]">
-      <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
+    <>
+      {/* Load Allpay Hosted Fields script */}
+      <Script
+        src="https://allpay.to/js/allpay-hf.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          // Try to initialize if payment URL is already ready
+          if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment && !allpayRef.current) {
+            try {
+              allpayRef.current = new window.AllpayPayment({
+                iframeId: iframeId,
+                onSuccess: function () {
+                  router.push(`/payment/success?order_id=${currentOrderId || ""}`)
+                },
+                onError: function (error_n: number, error_msg: string) {
+                  console.error("Payment error:", error_n, error_msg)
+                  setSubmitStatus("error")
+                  setIsPaymentReady(false)
+                  setPaymentUrl(null)
+                },
+              })
+            } catch (err) {
+              console.error("Error initializing Allpay:", err)
+            }
+          }
+        }}
+      />
+      <div className="min-h-screen bg-[#FFF0DC]">
+        <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8 md:mb-10 text-center">
           <Link
@@ -1017,14 +1091,44 @@ export function OnboardingForm() {
                       </div>
                     </div>
 
-                    {/* Complete Purchase Button */}
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting || !canProceedStep3()}
-                      className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
-                    >
-                      {isSubmitting ? "Processing..." : "Complete Purchase"}
-                    </Button>
+                    {/* Payment Section - Show iframe when ready, otherwise show button */}
+                    {isPaymentReady && paymentUrl ? (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        <div>
+                          <h3 className="text-lg font-medium text-[#543A14] mb-2">Payment Details</h3>
+                          <p className="text-sm text-[#543A14]/70 mb-4">Enter your payment information to complete your subscription</p>
+                        </div>
+                        <div className="bg-white rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm">
+                          <iframe
+                            id={iframeId}
+                            src={paymentUrl}
+                            className="w-full h-[500px] border-0"
+                            title="Payment form"
+                          />
+                        </div>
+                        <Button
+                          onClick={() => {
+                            if (allpayRef.current && typeof allpayRef.current.pay === "function") {
+                              allpayRef.current.pay()
+                            } else {
+                              setSubmitStatus("error")
+                              setTimeout(() => setSubmitStatus("idle"), 5000)
+                            }
+                          }}
+                          className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
+                        >
+                          Complete Payment
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || !canProceedStep3()}
+                        className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        {isSubmitting ? "Processing..." : "Complete Purchase"}
+                      </Button>
+                    )}
 
                     {submitStatus === "success" && (
                       <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -1050,5 +1154,6 @@ export function OnboardingForm() {
         </form>
       </div>
     </div>
+    </>
   )
 }

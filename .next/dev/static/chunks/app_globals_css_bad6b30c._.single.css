@@ -979,6 +979,10 @@
     height: 1.15rem;
   }
 
+  .h-\[500px\] {
+    height: 500px;
+  }
+
   .h-\[calc\(100\%-1px\)\] {
     height: calc(100% - 1px);
   }
@@ -1862,6 +1866,11 @@
 
   .bg-\[\#FFF0DC\] {
     background-color: #fff0dc;
+  }
+
+  .bg-\[\#FFF0DC\]\/30 {
+    background-color: #fff0dc4d;
+    background-color: lab(95.6034% 2.84395 11.6161 / .3);
   }
 
   .bg-\[\#FFF0DC\]\/50 {
@@ -2877,6 +2886,10 @@
 
   .\[--cell-size\:--spacing\(8\)\] {
     --cell-size: calc(var(--spacing) * 8);
+  }
+
+  .fade-in {
+    --tw-enter-opacity: 0;
   }
 
   .running {

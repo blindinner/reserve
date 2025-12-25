@@ -1,10 +1,32 @@
-[00:00:09.399] Server  LOG      ✓ Ready in 7.1s
-[00:00:22.692] Server  LOG      ○ Compiling / ...
-[00:00:38.737] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:00:05.462] Server  LOG      ✓ Ready in 4.1s
+[00:00:12.130] Server  LOG      ○ Compiling / ...
+[00:00:21.964] Server  WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:00:42.451] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
-[00:00:43.363] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+[00:00:25.133] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:25.636] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
 Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
-[00:00:43.710] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
-[00:00:43.710] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
-[00:00:43.710] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1766417597855}
+[00:00:26.280] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:00:26.280] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:00:26.280] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1766661960985}
+[00:05:18.910] Server  LOG      ✓ Compiled in 727ms
+[00:05:51.683] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:05:52.310] Browser WARN    Image with src "/luxury-fine-dining-restaurant-interior-elegant-amb.jpg" is using quality "90" which is not configured in images.qualities [75]. Please update your config to [75, 90].
+Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
+[00:05:52.494] Browser LOG     %c[Vercel Web Analytics]%c Debug mode is enabled by default in development. No requests will be sent to the server. color: rgb(120, 120, 120) color: inherit
+[00:05:52.495] Browser LOG     %c[Vercel Web Analytics]%c Running queued event color: rgb(120, 120, 120) color: inherit pageview {"path":"/","route":"/"}
+[00:05:52.495] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/ color: rgb(120, 120, 120) color: inherit {"dp":"/","o":"http://localhost:3000/","r":"","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1766662287188}
+[00:05:58.691] Server  LOG      ○ Compiling /onboarding ...
+[00:06:02.105] Browser LOG     %c[Vercel Web Analytics]%c [pageview] http://localhost:3000/onboarding?plan=biweekly&billing=monthly color: rgb(120, 120, 120) color: inherit {"dp":"/onboarding","o":"http://localhost:3000/onboarding?plan=biweekly&billing=monthly","sdkn":"@vercel/analytics/next","sdkv":"1.6.1","sv":"0.1.3","ts":1766662296797}
+[00:06:25.532] Server  LOG     Creating Allpay subscription request for order: "ORDER-1766662319027-wefddiq"
+[00:06:25.537] Server  LOG     Payment params (for signature): "{\n  \"login\": \"pp1014924\",\n  \"order_id\": \"ORDER-1766662319027-wefddiq\",\n  \"items\": [\n    {\n      \"name\": \"Biweekly Plan\",\n      \"qty\": \"1\",\n      \"price\": \"25.00\",\n      \"vat\": \"0\"\n    }\n  ],\n  \"subscription\": {\n    \"start_type\": \"1\",\n    \"end_type\": \"1\"\n  },\n  \"currency\": \"USD\",\n  \"lang\": \"EN\",\n  \"notifications_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook\",\n  \"success_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766662319027-wefddiq\",\n  \"backlink_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app\",\n  \"client_name\": \"test test\",\n  \"client_email\": \"test@test.com\",\n  \"client_phone\": \"516-423-1569\"\n}"
+[00:06:25.539] Server  LOG     Signature generation debug:
+[00:06:25.621] Server  LOG       Sorted keys: ["backlink_url","client_email","client_name","client_phone","currency","items","lang","login","notifications_url","order_id","subscription","success_url"]
+[00:06:25.627] Server  LOG       Chunks (values): ["https://reserve-git-new-payment-benjius-projects.vercel.app","test@test.com","test test","516-423-1569","USD","Biweekly Plan","25.00","1","0","EN","pp1014924","https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook","ORDER-1766662319027-wefddiq","1","1","https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766662319027-wefddiq"]
+[00:06:25.631] Server  LOG       Signature string (without key): "https://reserve-git-new-payment-benjius-projects.vercel.app:test@test.com:test test:516-423-1569:USD:Biweekly Plan:25.00:1:0:EN:pp1014924:https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook:ORDER-1766662319027-wefddiq:1:1:https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766662319027-wefddiq"
+[00:06:25.645] Server  LOG     Generated signature: "63345004b329c3718253ab118006c775bc7a9a151a80f34d7b6792e12709a23a"
+[00:06:26.135] Server  LOG     Allpay response: "{\"payment_url\":\"https:\\/\\/allpay.to\\/~rendeza\\/53297bc8\\/?payment_id=1145837&code=14d78c0c75ebbf2c42b4bf1d7cfa6b4a&lang=en\"}"
+[00:06:26.136] Server  LOG     Payment URL created successfully: "https://allpay.to/~rendeza/53297bc8/?payment_id=1145837&code=14d78c0c75ebbf2c42b4bf1d7cfa6b4a&lang=en"
+[00:06:29.142] Server  LOG     Received onboarding form submission: {}
+[00:06:31.843] Server  LOG     Data saved to database: {}
+[00:06:31.843] Server  LOG     Attempting to send onboarding email to benji@rendeza.com...
+[00:06:32.873] Server  LOG     Onboarding email sent successfully! Resend response: {}
