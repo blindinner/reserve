@@ -40,3 +40,37 @@ Read more: https://nextjs.org/docs/messages/next-image-unconfigured-qualities
 [00:05:05.123] Server  LOG     Attempting to send onboarding email to benji@rendeza.com...
 [00:05:06.174] Server  LOG     Onboarding email sent successfully! Resend response: {}
 [00:05:12.951] Browser ERROR   An empty string ("") was passed to the %s attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to %s instead of an empty string. src src
+[00:14:55.560] Server  LOG      ✓ Compiled in 1056ms
+[00:18:25.375] Server  LOG     Creating Allpay subscription request for order: "ORDER-1766663838472-bxeblom"
+[00:18:25.377] Server  LOG     Payment params (for signature): "{\n  \"login\": \"pp1014924\",\n  \"order_id\": \"ORDER-1766663838472-bxeblom\",\n  \"items\": [\n    {\n      \"name\": \"Biweekly Plan\",\n      \"qty\": \"1\",\n      \"price\": \"25.00\",\n      \"vat\": \"0\"\n    }\n  ],\n  \"subscription\": {\n    \"start_type\": \"1\",\n    \"end_type\": \"1\"\n  },\n  \"currency\": \"USD\",\n  \"lang\": \"EN\",\n  \"notifications_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook\",\n  \"success_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766663838472-bxeblom\",\n  \"backlink_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app\",\n  \"client_name\": \"benji Levi\",\n  \"client_email\": \"test@teast.com\",\n  \"client_phone\": \"123\"\n}"
+[00:18:25.378] Server  LOG     Signature generation debug:
+[00:18:25.379] Server  LOG       Sorted keys: ["backlink_url","client_email","client_name","client_phone","currency","items","lang","login","notifications_url","order_id","subscription","success_url"]
+[00:18:25.380] Server  LOG       Chunks (values): ["https://reserve-git-new-payment-benjius-projects.vercel.app","test@teast.com","benji Levi","123","USD","Biweekly Plan","25.00","1","0","EN","pp1014924","https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook","ORDER-1766663838472-bxeblom","1","1","https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766663838472-bxeblom"]
+[00:18:25.381] Server  LOG       Signature string (without key): "https://reserve-git-new-payment-benjius-projects.vercel.app:test@teast.com:benji Levi:123:USD:Biweekly Plan:25.00:1:0:EN:pp1014924:https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook:ORDER-1766663838472-bxeblom:1:1:https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766663838472-bxeblom"
+[00:18:25.381] Server  LOG     Generated signature: "de81a3e219182c97eddf88048c2d76157c2901672595b56a93f78f319214b8b9"
+[00:18:25.729] Server  LOG     Allpay response: "{\"payment_url\":\"https:\\/\\/allpay.to\\/~rendeza\\/53297bc8\\/?payment_id=1145847&code=6e1166feb01e2b888d140fa94bd3f7f2&lang=en\"}"
+[00:18:25.731] Server  LOG     Payment URL created successfully: "https://allpay.to/~rendeza/53297bc8/?payment_id=1145847&code=6e1166feb01e2b888d140fa94bd3f7f2&lang=en"
+[00:18:25.916] Server  LOG     Received onboarding form submission: {}
+[00:18:28.994] Server  LOG     Data saved to database: {}
+[00:18:28.995] Server  LOG     Attempting to send onboarding email to benji@rendeza.com...
+[00:18:29.970] Server  LOG     Onboarding email sent successfully! Resend response: {}
+[00:18:38.640] Browser ERROR   An empty string ("") was passed to the %s attribute. This may cause the browser to download the whole page again over the network. To fix this, either do not render the element at all or pass null to %s instead of an empty string. src src
+[00:25:18.433] Server  LOG      ✓ Compiled in 1189ms
+[00:27:47.381] Server  LOG      ✓ Compiled in 1216ms
+[00:27:48.725] Server  LOG      ✓ Compiled in 1332ms
+[00:27:59.486] Server  LOG     Creating Allpay subscription request for order: "ORDER-1766664412679-26nkc7x"
+[00:27:59.487] Server  LOG     Payment params (for signature): "{\n  \"login\": \"pp1014924\",\n  \"order_id\": \"ORDER-1766664412679-26nkc7x\",\n  \"items\": [\n    {\n      \"name\": \"Biweekly Plan\",\n      \"qty\": \"1\",\n      \"price\": \"25.00\",\n      \"vat\": \"0\"\n    }\n  ],\n  \"subscription\": {\n    \"start_type\": \"1\",\n    \"end_type\": \"1\"\n  },\n  \"currency\": \"USD\",\n  \"lang\": \"EN\",\n  \"notifications_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook\",\n  \"success_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766664412679-26nkc7x\",\n  \"backlink_url\": \"https://reserve-git-new-payment-benjius-projects.vercel.app\",\n  \"client_name\": \"benji Levi\",\n  \"client_email\": \"test@teast.com\",\n  \"client_phone\": \"123\"\n}"
+[00:27:59.488] Server  LOG     Signature generation debug:
+[00:27:59.488] Server  LOG       Sorted keys: ["backlink_url","client_email","client_name","client_phone","currency","items","lang","login","notifications_url","order_id","subscription","success_url"]
+[00:27:59.489] Server  LOG       Chunks (values): ["https://reserve-git-new-payment-benjius-projects.vercel.app","test@teast.com","benji Levi","123","USD","Biweekly Plan","25.00","1","0","EN","pp1014924","https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook","ORDER-1766664412679-26nkc7x","1","1","https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766664412679-26nkc7x"]
+[00:27:59.490] Server  LOG       Signature string (without key): "https://reserve-git-new-payment-benjius-projects.vercel.app:test@teast.com:benji Levi:123:USD:Biweekly Plan:25.00:1:0:EN:pp1014924:https://reserve-git-new-payment-benjius-projects.vercel.app/api/allpay/webhook:ORDER-1766664412679-26nkc7x:1:1:https://reserve-git-new-payment-benjius-projects.vercel.app/payment/success?order_id=ORDER-1766664412679-26nkc7x"
+[00:27:59.491] Server  LOG     Generated signature: "d3be220453d76a14ecd5819a98042ff5c58a12d29f23773ab2b5390ff26ab91a"
+[00:27:59.871] Server  LOG     Allpay response: "{\"payment_url\":\"https:\\/\\/allpay.to\\/~rendeza\\/53297bc8\\/?payment_id=1145851&code=193deec7ef12e1e8c7e0598c2b0fccaf&lang=en\"}"
+[00:27:59.872] Server  LOG     Payment URL created successfully: "https://allpay.to/~rendeza/53297bc8/?payment_id=1145851&code=193deec7ef12e1e8c7e0598c2b0fccaf&lang=en"
+[00:27:59.977] Server  LOG     Received onboarding form submission: {}
+[00:28:01.480] Server  LOG     Data saved to database: {}
+[00:28:01.481] Server  LOG     Attempting to send onboarding email to benji@rendeza.com...
+[00:28:02.513] Server  LOG     Onboarding email sent successfully! Resend response: {}
+[00:28:21.027] Server  LOG      ✓ Compiled in 1877ms
+[00:28:42.752] Server  LOG      ✓ Compiled in 1117ms
+[00:28:47.214] Server  LOG      ✓ Compiled in 967ms
