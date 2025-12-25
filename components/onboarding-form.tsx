@@ -16,6 +16,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface AddressSuggestion {
   formatted: string
@@ -525,13 +532,6 @@ export function OnboardingForm() {
             setPaymentUrl(null)
           },
         })
-        // Scroll to payment section smoothly
-        setTimeout(() => {
-          const paymentSection = document.getElementById(iframeId)
-          if (paymentSection) {
-            paymentSection.scrollIntoView({ behavior: "smooth", block: "center" })
-          }
-        }, 300)
       } catch (err) {
         console.error("Error initializing Allpay:", err)
         setSubmitStatus("error")
@@ -1091,44 +1091,14 @@ export function OnboardingForm() {
                       </div>
                     </div>
 
-                    {/* Payment Section - Show iframe when ready, otherwise show button */}
-                    {isPaymentReady && paymentUrl ? (
-                      <div className="space-y-4 animate-in fade-in duration-300">
-                        <div>
-                          <h3 className="text-lg font-medium text-[#543A14] mb-2">Payment Details</h3>
-                          <p className="text-sm text-[#543A14]/70 mb-4">Enter your payment information to complete your subscription</p>
-                        </div>
-                        <div className="bg-white rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm">
-                          <iframe
-                            id={iframeId}
-                            src={paymentUrl}
-                            className="w-full h-[500px] border-0"
-                            title="Payment form"
-                          />
-                        </div>
-                        <Button
-                          onClick={() => {
-                            if (allpayRef.current && typeof allpayRef.current.pay === "function") {
-                              allpayRef.current.pay()
-                            } else {
-                              setSubmitStatus("error")
-                              setTimeout(() => setSubmitStatus("idle"), 5000)
-                            }
-                          }}
-                          className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
-                        >
-                          Complete Payment
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting || !canProceedStep3()}
-                        className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
-                      >
-                        {isSubmitting ? "Processing..." : "Complete Purchase"}
-                      </Button>
-                    )}
+                    {/* Complete Purchase Button */}
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting || !canProceedStep3()}
+                      className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
+                    >
+                      {isSubmitting ? "Processing..." : "Complete Purchase"}
+                    </Button>
 
                     {submitStatus === "success" && (
                       <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -1153,6 +1123,55 @@ export function OnboardingForm() {
           </div>
         </form>
       </div>
+
+      {/* Payment Modal Dialog */}
+      <Dialog open={isPaymentReady && !!paymentUrl} onOpenChange={(open) => {
+        if (!open) {
+          setIsPaymentReady(false)
+          setPaymentUrl(null)
+          setSubmitStatus("idle")
+        }
+      }}>
+        <DialogContent className="max-w-2xl bg-[#FFF0DC] border-[#F0BB78]/30 p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-5 pb-3 border-b border-[#F0BB78]/20">
+            <DialogTitle className="text-2xl font-serif font-light text-[#543A14]">
+              Complete Your Payment
+            </DialogTitle>
+            <DialogDescription className="text-base text-[#543A14]/70 pt-2">
+              Enter your payment information to complete your subscription
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="px-6 pt-4 pb-4">
+            <div className="bg-white rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm">
+              <iframe
+                id={iframeId}
+                src={paymentUrl || ""}
+                className="w-full h-[450px] border-0"
+                title="Payment form"
+              />
+            </div>
+            
+            <div className="mt-4">
+              <Button
+                onClick={() => {
+                  if (allpayRef.current && typeof allpayRef.current.pay === "function") {
+                    allpayRef.current.pay()
+                  } else {
+                    setSubmitStatus("error")
+                    setIsPaymentReady(false)
+                    setPaymentUrl(null)
+                    setTimeout(() => setSubmitStatus("idle"), 5000)
+                  }
+                }}
+                className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
+              >
+                Complete Payment
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   )
