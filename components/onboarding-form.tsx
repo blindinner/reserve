@@ -815,7 +815,33 @@ export function OnboardingForm() {
   }, [billingFrequency])
 
   return (
-    <div className="min-h-screen bg-[#FFF0DC]">
+    <>
+      {/* Load Allpay Hosted Fields script */}
+      <Script
+        src="https://allpay.to/js/allpay-hf.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment && !allpayRef.current) {
+            try {
+              allpayRef.current = new window.AllpayPayment({
+                iframeId: iframeId,
+                onSuccess: function () {
+                  router.push(`/payment/success?order_id=${currentOrderId || ""}`)
+                },
+                onError: function (error_n: number, error_msg: string) {
+                  console.error("Payment error:", error_n, error_msg)
+                  setSubmitStatus("error")
+                  setIsPaymentReady(false)
+                  setPaymentUrl(null)
+                },
+              })
+            } catch (err) {
+              console.error("Error initializing Allpay:", err)
+            }
+          }
+        }}
+      />
+      <div className="min-h-screen bg-[#FFF0DC]">
         <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8 md:mb-10 text-center">
@@ -2001,8 +2027,8 @@ export function OnboardingForm() {
                   font-size: 0.75rem;
                   text-align: center;
                   color: #543A14;
-              }
-            `}} />
+                }
+              `}} />
               <div className="rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm mb-4 bg-transparent">
                 <iframe
                   id={iframeId}
