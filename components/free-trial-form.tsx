@@ -561,7 +561,7 @@ export function FreeTrialForm() {
 
   // Pricing calculations - default to biweekly for free trial
   const planPricing = {
-    weekly: { monthly: 39, annual: 390 },
+    weekly: { monthly: 0.01, annual: 0.12 },
     biweekly: { monthly: 25, annual: 250 },
   }
 

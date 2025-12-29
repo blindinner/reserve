@@ -463,11 +463,11 @@ ${additionalInfo ? `Additional Information:\n${additionalInfo}` : ""}
     <h2 style="color: #543A14; margin-top: 0; font-family: serif;">Thank You, ${firstName}!</h2>
     
     <p style="color: #333; font-size: 16px; line-height: 1.8;">
-      We're thrilled that you've signed up for your free month with Rendeza! 
+      Thank you for signing up to Rendeza!
     </p>
     
     <p style="color: #333; font-size: 16px; line-height: 1.8;">
-      We've received your reservation preferences and we're getting everything ready for you. Our team will be in touch soon to activate your free month and ensure everything is perfectly tailored to your needs.
+      We've received your reservation preferences and we're getting everything ready for you. 
     </p>
     
     <div style="background-color: #f9f9f9; padding: 20px; border-radius: 6px; margin: 30px 0; border-left: 4px solid #F0BB78;">
@@ -499,9 +499,9 @@ ${additionalInfo ? `Additional Information:\n${additionalInfo}` : ""}
 
       const userPlainTextMessage = `Thank You, ${firstName}!
 
-We're thrilled that you've signed up for your free month with Rendeza!
+We're thrilled that you've signed up to Rendeza!
 
-We've received your reservation preferences and we're getting everything ready for you. Our team will be in touch soon to activate your free month and ensure everything is perfectly tailored to your needs.
+We've received your reservation preferences and we're getting everything ready for you. 
 
 What Happens Next?
 ✓ We'll review your preferences and dietary requirements

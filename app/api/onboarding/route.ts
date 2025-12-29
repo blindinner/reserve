@@ -104,7 +104,7 @@ export async function POST(request: Request) {
 
     // Calculate pricing
     const planPricing: Record<string, { monthly: number; annual: number }> = {
-      weekly: { monthly: 39, annual: 390 },
+      weekly: { monthly: 0.01, annual: 0.12 },
       biweekly: { monthly: 25, annual: 250 },
       business: { monthly: 0, annual: 0 },
     }
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
 
     // Calculate amount
     const planPricingCalc: Record<string, { monthly: number; annual: number }> = {
-      weekly: { monthly: 39, annual: 390 },
+      weekly: { monthly: 0.01, annual: 0.12 },
       biweekly: { monthly: 25, annual: 250 },
       business: { monthly: 0, annual: 0 },
     }

@@ -284,7 +284,7 @@ export function OnboardingForm() {
 
   // Pricing calculations
   const planPricing = {
-    weekly: { monthly: 39, annual: 390 }, // 10 months (2 months free)
+    weekly: { monthly: 0.01, annual: 0.12 }, // 10 months (2 months free)
     biweekly: { monthly: 25, annual: 250 }, // 10 months (2 months free)
     business: { monthly: 0, annual: 0 }, // Business pricing
   }

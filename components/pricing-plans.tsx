@@ -11,7 +11,7 @@ export function PricingPlans() {
 
   // Pricing calculations (monthly only)
   const planPricing = {
-    weekly: { monthly: 39 },
+    weekly: { monthly: 0.01 },
     biweekly: { monthly: 25 },
     business: { monthly: 0 }, // Custom pricing
   }
