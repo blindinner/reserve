@@ -22,6 +22,13 @@ import { Badge } from "@/components/ui/badge"
 import { CalendarIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface AddressSuggestion {
   formatted: string
@@ -207,6 +214,18 @@ export function OnboardingForm() {
   }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null)
+  const [isPaymentReady, setIsPaymentReady] = useState(false)
+  const allpayRef = useRef<any>(null)
+  const iframeId = "allpay-payment-iframe-onboarding"
+
+  // Declare AllpayPayment type
+  declare global {
+    interface Window {
+      AllpayPayment: any
+    }
+  }
 
   // Determine if we should show the number of people field
   const shouldShowNumberOfPeople =
@@ -753,24 +772,14 @@ export function OnboardingForm() {
         // Continue anyway - payment is created
       }
 
-      // Store order data and redirect to checkout page
-      const checkoutData = {
-        orderId: orderId,
-        plan: formData.pricingPlan,
-        billingFrequency: formData.billingFrequency,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
-        amount: amount,
-        paymentUrl: paymentData.paymentUrl,
+      // Set payment URL to show iframe in modal
+      if (paymentData.paymentUrl) {
+        setPaymentUrl(paymentData.paymentUrl)
+        setCurrentOrderId(orderId)
+        setIsPaymentReady(true)
+      } else {
+        throw new Error("No payment URL received")
       }
-
-      // Store in localStorage for checkout page
-      localStorage.setItem("checkout_order_data", JSON.stringify(checkoutData))
-
-      // Redirect to checkout page
-      router.push("/checkout")
     } catch (error) {
       console.error("Error processing payment:", error)
       setSubmitStatus("error")
@@ -1760,6 +1769,267 @@ export function OnboardingForm() {
             </div>
           </form>
         </div>
+
+        {/* Payment Modal Dialog */}
+        <Dialog open={isPaymentReady && !!paymentUrl} onOpenChange={(open) => {
+          if (!open) {
+            setIsPaymentReady(false)
+            setPaymentUrl(null)
+            setSubmitStatus("idle")
+          }
+        }}>
+          <DialogContent className="max-w-xl bg-[#FFF0DC] border-[#F0BB78]/30 p-0 overflow-hidden">
+            <DialogHeader className="px-5 pt-4 pb-3 border-b border-[#F0BB78]/20">
+              <DialogTitle className="text-xl font-serif font-light text-[#543A14]">
+                Complete Your Payment
+              </DialogTitle>
+              <DialogDescription className="text-sm text-[#543A14]/70 pt-1">
+                Enter your payment information to complete your subscription
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="px-5 pt-4 pb-4">
+              <style dangerouslySetInnerHTML={{__html: `
+                form {
+                  display: contents;
+                }
+                .api_fields-wrap {
+                  grid-column-gap: 1rem;
+                  grid-row-gap: 1rem;
+                  flex-flow: column;
+                  display: flex;
+                }
+                .api_fields-line {
+                  grid-column-gap: 1rem;
+                  grid-row-gap: 1rem;
+                  justify-content: flex-start;
+                  display: flex;
+                }
+                .api_input-wrap {
+                  grid-column-gap: 0.5rem;
+                  flex: 1 1 0;
+                  min-width: 0;
+                  position: relative;
+                }
+                .api_input-label {
+                  color: #543A14;
+                  opacity: 0.7;
+                  padding-bottom: 0.25rem;
+                  font-size: 0.75rem;
+                  font-weight: 400;
+                  line-height: 1.3;
+                }
+                .api_input-container {
+                  border: 1px solid #F0BB78;
+                  border-radius: 0.5rem;
+                  margin-bottom: 0;
+                  padding: 0.75rem 4rem 0.75rem 1rem;
+                  background-color: transparent;
+                  transition: border-color 0.2s, box-shadow 0.2s;
+                }
+                .api_input-container:focus-within {
+                  border-color: #F0BB78;
+                  box-shadow: 0 0 0 3px rgba(240, 187, 120, 0.15);
+                  outline: none;
+                }
+                .api_input-container iframe {
+                  height: 1.25rem !important;
+                  display: block;
+                }
+                .api_input-container.no-brand {
+                  background-image: url("https://allpay.to/images/hfields/card.svg");
+                  background-position: 95%;
+                  background-repeat: no-repeat;
+                  background-size: auto 1.5rem;
+                }
+                .api_input-container.cvc {
+                  background-image: url("https://allpay.to/hfields/cvc.svg");
+                  background-position: 90%;
+                  background-repeat: no-repeat;
+                  background-size: auto 1.5rem;
+                }
+                .api_input-container.visa,
+                .api_input-container.mastercard,
+                .api_input-container.amex,
+                .api_input-container.discover,
+                .api_input-container.jcb,
+                .api_input-container.diners {
+                  background-position: 95%;
+                  background-repeat: no-repeat;
+                  background-size: auto 2rem;
+                }
+                .api_input-container.visa {
+                  background-image: url("https://allpay.to/hfields/visa.svg");
+                }
+                .api_input-container.mastercard {
+                  background-image: url("https://allpay.to/hfields/mastercard.svg");
+                }
+                .api_input-container.amex {
+                  background-image: url("https://allpay.to/hfields/amex.svg");
+                }
+                .api_input-container.discover {
+                  background-image: url("https://allpay.to/hfields/discover.svg");
+                }
+                .api_input-container.jcb {
+                  background-image: url("https://allpay.to/hfields/jcb.svg");
+                }
+                .api_input-container.diners {
+                  background-image: url("https://allpay.to/hfields/diners.svg");
+                }
+                .api_input-container.inst {
+                  padding: 1rem;
+                }
+                .api_input_dont-apply-css {
+                  width: 100%;
+                  box-sizing: border-box;
+                  display: block;
+                  border: none;
+                  outline: none;
+                  background: transparent;
+                  color: #543A14;
+                }
+                .api_input_dont-apply-css::placeholder {
+                  color: #543A14;
+                  opacity: 0.5;
+                }
+                .api_input-error {
+                  border: solid 1px #dd5e5e;
+                  background-color: #fff5f5;
+                }
+                .apple-pay-btn,
+                .bit-pay-btn {
+                  color: #fff;
+                  cursor: pointer;
+                  border-radius: 0.5rem;
+                  justify-content: center;
+                  align-items: center;
+                  width: 100%;
+                  height: 3.125rem;
+                  transition: opacity 0.2s;
+                  display: flex;
+                }
+                .apple-pay-btn {
+                  background: url(https://allpay.to/hfields/apple-pay.svg) #000 no-repeat center;
+                }
+                .bit-pay-btn {
+                  background: url(https://allpay.to/hfields/bit-cyan.svg) #03353b no-repeat center;
+                }
+                .apple-pay-btn:hover,
+                .bit-pay-btn:hover {
+                  opacity: 0.85;
+                }
+                .apple-pay-btn:active,
+                .bit-pay-btn:active {
+                  opacity: 0.75;
+                }
+                .apple-pay-btn:focus-visible,
+                .bit-pay-btn:focus-visible {
+                  outline: 3px solid #F0BB78;
+                  outline-offset: 3px;
+                }
+                .api_wallets-message {
+                  color: #543A14;
+                  opacity: 0.6;
+                  font-size: 0.75rem;
+                  text-align: center;
+                }
+                .api_wallets-divder-wrap {
+                  position: relative;
+                  display: flex;
+                  margin-top: 0.5rem;
+                  margin-bottom: 0.5rem;
+                  justify-content: center;
+                  align-items: center;
+                }
+                .api_wallets-divider-line {
+                  width: 100%;
+                  height: 1px;
+                  background-color: #F0BB78;
+                  opacity: 0.3;
+                }
+                .api_wallets-divider-text {
+                  position: absolute;
+                  z-index: 1;
+                  padding-right: 0.5rem;
+                  padding-bottom: 2px;
+                  padding-left: 0.5rem;
+                  background-color: #FFF0DC;
+                  color: #543A14;
+                  opacity: 0.6;
+                  font-size: 0.875rem;
+                  line-height: 1;
+                }
+                .api_fields-line.api_credential {
+                  display: flex;
+                  justify-content: center;
+                }
+                .api_fields-line.api_credential a {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  grid-column-gap: 0.25rem;
+                  grid-row-gap: 0.25rem;
+                  color: #543A14;
+                  opacity: 0.6;
+                  font-size: 0.75rem;
+                  text-decoration: none;
+                  text-wrap: nowrap;
+                  cursor: pointer;
+                  transition: color 0.2s, opacity 0.2s;
+                }
+                .api_fields-line.api_credential a:hover {
+                  color: #543A14;
+                  opacity: 0.8;
+                }
+                .api_fields-line.installments {
+                  align-items: center;
+                  font-size: .875rem;
+                  color: #543A14;
+                }
+                .is-inactive {
+                  opacity: 0.35;
+                  cursor: not-allowed;
+                  pointer-events: none;
+                }
+                .api_warning {
+                  padding: 0.5rem;
+                  border-style: solid;
+                  border-width: 1px;
+                  border-color: #F0BB78;
+                  border-radius: 0.25rem;
+                  background-color: rgba(240, 187, 120, 0.15);
+                  font-size: 0.75rem;
+                  text-align: center;
+                  color: #543A14;
+              }
+            `}} />
+              <div className="rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm mb-4 bg-transparent">
+                <iframe
+                  id={iframeId}
+                  src={paymentUrl || ""}
+                  className="w-full h-[200px] border-0"
+                  title="Payment form"
+                />
+              </div>
+
+              <Button
+                onClick={() => {
+                  if (allpayRef.current && typeof allpayRef.current.pay === "function") {
+                    allpayRef.current.pay()
+                  } else {
+                    setSubmitStatus("error")
+                    setIsPaymentReady(false)
+                    setPaymentUrl(null)
+                    setTimeout(() => setSubmitStatus("idle"), 5000)
+                  }
+                }}
+                className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
+              >
+                Complete Payment
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   )
