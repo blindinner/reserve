@@ -227,6 +227,40 @@ export function OnboardingForm() {
     }
   }
 
+  // Initialize Allpay when iframe is ready
+  useEffect(() => {
+    if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment) {
+      // Wait for iframe to be in DOM
+      const checkIframe = () => {
+        const iframe = document.getElementById(iframeId)
+        if (iframe && !allpayRef.current) {
+          try {
+            allpayRef.current = new window.AllpayPayment({
+              iframeId: iframeId,
+              onSuccess: function () {
+                router.push(`/payment/success?order_id=${currentOrderId || ""}`)
+              },
+              onError: function (error_n: number, error_msg: string) {
+                console.error("Payment error:", error_n, error_msg)
+                setSubmitStatus("error")
+                setIsPaymentReady(false)
+                setPaymentUrl(null)
+              },
+            })
+          } catch (err) {
+            console.error("Error initializing Allpay:", err)
+          }
+        } else if (!iframe) {
+          // Iframe not ready yet, try again
+          setTimeout(checkIframe, 100)
+        }
+      }
+      
+      // Start checking after a short delay to ensure DOM is updated
+      setTimeout(checkIframe, 100)
+    }
+  }, [isPaymentReady, paymentUrl, currentOrderId, router, iframeId])
+
   // Determine if we should show the number of people field
   const shouldShowNumberOfPeople =
     formData.reservationWith === "kids" ||
@@ -820,26 +854,6 @@ export function OnboardingForm() {
       <Script
         src="https://allpay.to/js/allpay-hf.js"
         strategy="afterInteractive"
-        onLoad={() => {
-          if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment && !allpayRef.current) {
-            try {
-              allpayRef.current = new window.AllpayPayment({
-                iframeId: iframeId,
-                onSuccess: function () {
-                  router.push(`/payment/success?order_id=${currentOrderId || ""}`)
-                },
-                onError: function (error_n: number, error_msg: string) {
-                  console.error("Payment error:", error_n, error_msg)
-                  setSubmitStatus("error")
-                  setIsPaymentReady(false)
-                  setPaymentUrl(null)
-                },
-              })
-            } catch (err) {
-              console.error("Error initializing Allpay:", err)
-            }
-          }
-        }}
       />
       <div className="min-h-screen bg-[#FFF0DC]">
         <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-6xl mx-auto">
@@ -1799,6 +1813,8 @@ export function OnboardingForm() {
         {/* Payment Modal Dialog */}
         <Dialog open={isPaymentReady && !!paymentUrl} onOpenChange={(open) => {
           if (!open) {
+            // Clean up AllPay reference when modal closes
+            allpayRef.current = null
             setIsPaymentReady(false)
             setPaymentUrl(null)
             setSubmitStatus("idle")
@@ -2040,9 +2056,22 @@ export function OnboardingForm() {
 
               <Button
                 onClick={() => {
+                  // Check if iframe exists in DOM
+                  const iframe = document.getElementById(iframeId)
+                  if (!iframe) {
+                    console.error("Payment iframe not found in DOM")
+                    setSubmitStatus("error")
+                    setIsPaymentReady(false)
+                    setPaymentUrl(null)
+                    setTimeout(() => setSubmitStatus("idle"), 5000)
+                    return
+                  }
+                  
+                  // Check if AllPay is initialized
                   if (allpayRef.current && typeof allpayRef.current.pay === "function") {
                     allpayRef.current.pay()
                   } else {
+                    console.error("AllPay not initialized. Iframe exists:", !!iframe, "AllPay ref:", !!allpayRef.current)
                     setSubmitStatus("error")
                     setIsPaymentReady(false)
                     setPaymentUrl(null)
