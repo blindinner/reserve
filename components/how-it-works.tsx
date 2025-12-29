@@ -24,7 +24,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="py-32 md:py-40 px-6 md:px-12 lg:px-20 bg-[#543A14]">
+    <section id="how" className="py-32 md:py-40 px-6 md:px-12 lg:px-20 bg-[#543A14]">
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
         <div className="mb-24 md:mb-32">
@@ -50,7 +50,7 @@ export function HowItWorks() {
                   <div className="h-px w-20 bg-[#F0BB78]/20"></div>
                 </div>
               )}
-              
+
               <div className="flex flex-col md:flex-row md:items-start gap-8 md:gap-16">
                 {/* Number - Elegant positioning */}
                 <div className="md:w-20 flex-shrink-0">

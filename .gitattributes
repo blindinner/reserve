@@ -1,0 +1,6 @@
+# Prevent accidentally committing sensitive files
+.env* filter=git-crypt diff=git-crypt
+*.local filter=git-crypt diff=git-crypt
+*.pem filter=git-crypt diff=git-crypt
+*.key filter=git-crypt diff=git-crypt
+
