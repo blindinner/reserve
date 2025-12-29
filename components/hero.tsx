@@ -52,7 +52,7 @@ export function Hero() {
       {/* Hero Content */}
       <div className="relative z-10 px-6 md:px-12 text-center max-w-5xl mx-auto">
         <h2 className="text-5xl md:text-7xl lg:text-8xl font-serif font-light text-white mb-6 leading-[1.1] tracking-tight text-balance drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]">
-          Quality Time, On Automatic
+        Quality Time, On Automatic
         </h2>
         <p className="text-lg md:text-xl text-white mb-12 leading-relaxed max-w-3xl mx-auto font-light text-pretty drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
           The subscription service for automatic reservations with the people you love. We handle the planning. You show up for the moments.

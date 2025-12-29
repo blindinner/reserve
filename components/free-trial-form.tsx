@@ -20,6 +20,14 @@ import { CalendarIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Script from "next/script"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface AddressSuggestion {
   formatted: string
@@ -76,6 +84,18 @@ export function FreeTrialForm() {
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null)
+  const [isPaymentReady, setIsPaymentReady] = useState(false)
+  const allpayRef = useRef<any>(null)
+  const iframeId = "allpay-payment-iframe-free-trial"
+
+  // Declare AllpayPayment type
+  declare global {
+    interface Window {
+      AllpayPayment: any
+    }
+  }
 
   // Handle click outside suggestions dropdown
   useEffect(() => {
@@ -539,6 +559,16 @@ export function FreeTrialForm() {
     }
   }
 
+  // Pricing calculations - default to biweekly for free trial
+  const planPricing = {
+    weekly: { monthly: 39, annual: 390 },
+    biweekly: { monthly: 25, annual: 250 },
+  }
+
+  const getCurrentPrice = (plan: string = "biweekly") => {
+    return planPricing[plan as "weekly" | "biweekly"]?.monthly || 25
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -552,7 +582,43 @@ export function FreeTrialForm() {
     setSubmitStatus("idle")
 
     try {
-      // Serialize Date objects to ISO strings for API submission
+      // Determine plan from frequency (default to biweekly)
+      const plan = formData.frequency === "weekly" ? "weekly" : "biweekly"
+      const amount = getCurrentPrice(plan)
+
+      if (!amount || amount <= 0) {
+        throw new Error("Invalid payment amount")
+      }
+
+      // Generate unique order ID
+      const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+
+      // Create payment request
+      const paymentResponse = await fetch("/api/allpay/create-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          plan: plan,
+          billingFrequency: "monthly",
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          amount: amount,
+        }),
+      })
+
+      const paymentData = await paymentResponse.json()
+
+      if (!paymentResponse.ok) {
+        console.error("Payment API Error:", paymentData)
+        throw new Error(paymentData.error || "Failed to create payment")
+      }
+
+      // Save form data to free-trial API (for tracking)
       const submissionData = {
         ...formData,
         specificDates: formData.specificDates.map((entry) => ({
@@ -560,13 +626,13 @@ export function FreeTrialForm() {
           time: entry.time,
           reservationWith: entry.reservationWith,
           numberOfPeople: entry.numberOfPeople,
-          // Don't send isCustomized and editingDateIndex to API
         })),
-        editingDateIndex: undefined, // Don't send to API
+        editingDateIndex: undefined,
+        orderId: orderId,
       }
       delete submissionData.editingDateIndex
 
-      const response = await fetch("/api/free-trial", {
+      const freeTrialResponse = await fetch("/api/free-trial", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -574,23 +640,21 @@ export function FreeTrialForm() {
         body: JSON.stringify(submissionData),
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        console.error("API Error:", data)
-        throw new Error(data.error || "Failed to submit form")
+      if (!freeTrialResponse.ok) {
+        console.error("Free trial API Error:", await freeTrialResponse.json())
+        // Continue anyway - payment is created
       }
 
-      console.log("Form submitted successfully:", data)
-
-      setSubmitStatus("success")
-
-      // Redirect to homepage after a brief delay to show success message
-      setTimeout(() => {
-        router.push("/")
-      }, 2000)
+      // Set payment URL to show iframe on same page
+      if (paymentData.paymentUrl) {
+        setPaymentUrl(paymentData.paymentUrl)
+        setCurrentOrderId(orderId)
+        setIsPaymentReady(true)
+      } else {
+        throw new Error("No payment URL received")
+      }
     } catch (error) {
-      console.error("Error submitting form:", error)
+      console.error("Error processing payment:", error)
       setSubmitStatus("error")
       setTimeout(() => {
         setSubmitStatus("idle")
@@ -599,6 +663,31 @@ export function FreeTrialForm() {
       setIsSubmitting(false)
     }
   }
+
+  // Initialize Allpay when payment URL is ready
+  useEffect(() => {
+    if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment && !allpayRef.current) {
+      try {
+        allpayRef.current = new window.AllpayPayment({
+          iframeId: iframeId,
+          onSuccess: function () {
+            router.push(`/payment/success?order_id=${currentOrderId || ""}`)
+          },
+          onError: function (error_n: number, error_msg: string) {
+            console.error("Payment error:", error_n, error_msg)
+            setSubmitStatus("error")
+            setIsPaymentReady(false)
+            setPaymentUrl(null)
+          },
+        })
+      } catch (err) {
+        console.error("Error initializing Allpay:", err)
+        setSubmitStatus("error")
+        setIsPaymentReady(false)
+        setPaymentUrl(null)
+      }
+    }
+  }, [isPaymentReady, paymentUrl, currentOrderId, router])
 
   // Format day for display
   const dayLabels: Record<string, string> = {
@@ -618,7 +707,33 @@ export function FreeTrialForm() {
   ]
 
   return (
-    <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-4xl mx-auto">
+    <>
+      {/* Load Allpay Hosted Fields script */}
+      <Script
+        src="https://allpay.to/js/allpay-hf.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          if (isPaymentReady && paymentUrl && typeof window !== "undefined" && window.AllpayPayment && !allpayRef.current) {
+            try {
+              allpayRef.current = new window.AllpayPayment({
+                iframeId: iframeId,
+                onSuccess: function () {
+                  router.push(`/payment/success?order_id=${currentOrderId || ""}`)
+                },
+                onError: function (error_n: number, error_msg: string) {
+                  console.error("Payment error:", error_n, error_msg)
+                  setSubmitStatus("error")
+                  setIsPaymentReady(false)
+                  setPaymentUrl(null)
+                },
+              })
+            } catch (err) {
+              console.error("Error initializing Allpay:", err)
+            }
+          }
+        }}
+      />
+      <div className="py-8 md:py-12 px-4 md:px-6 lg:px-8 max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8 md:mb-10 text-center">
         <Link
@@ -1555,7 +1670,7 @@ export function FreeTrialForm() {
                   disabled={isSubmitting || !canSubmit()}
                   className="flex-1 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
                 >
-                  {isSubmitting ? "Submitting..." : "Claim Your Free Month"}
+                  {isSubmitting ? "Processing..." : "Proceed to Payment"}
                 </Button>
               )}
             </div>
@@ -1578,7 +1693,55 @@ export function FreeTrialForm() {
           </div>
         </div>
       </form>
+
+      {/* Payment Modal Dialog */}
+      <Dialog open={isPaymentReady && !!paymentUrl} onOpenChange={(open) => {
+        if (!open) {
+          setIsPaymentReady(false)
+          setPaymentUrl(null)
+          setSubmitStatus("idle")
+        }
+      }}>
+        <DialogContent className="max-w-xl bg-[#FFF0DC] border-[#F0BB78]/30 p-0 overflow-hidden">
+          <DialogHeader className="px-5 pt-4 pb-3 border-b border-[#F0BB78]/20">
+            <DialogTitle className="text-xl font-serif font-light text-[#543A14]">
+              Complete Your Payment
+            </DialogTitle>
+            <DialogDescription className="text-sm text-[#543A14]/70 pt-1">
+              Enter your payment information to complete your subscription
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-5 pt-4 pb-4">
+            <div className="bg-white rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm mb-4">
+              <iframe
+                id={iframeId}
+                src={paymentUrl || ""}
+                className="w-full h-[150px] border-0"
+                title="Payment form"
+              />
+            </div>
+
+            <Button
+              onClick={() => {
+                if (allpayRef.current && typeof allpayRef.current.pay === "function") {
+                  allpayRef.current.pay()
+                } else {
+                  setSubmitStatus("error")
+                  setIsPaymentReady(false)
+                  setPaymentUrl(null)
+                  setTimeout(() => setSubmitStatus("idle"), 5000)
+                }
+              }}
+              className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
+            >
+              Complete Payment
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+    </>
   )
 }
 

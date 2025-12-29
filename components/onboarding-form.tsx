@@ -15,6 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Badge } from "@/components/ui/badge"
+import { CalendarIcon, X } from "lucide-react"
+import { format } from "date-fns"
 import Link from "next/link"
 import {
   Dialog,
@@ -34,6 +40,14 @@ interface AddressSuggestion {
   postcode?: string
 }
 
+interface SpecificDateEntry {
+  date: Date
+  time: string // 24-hour format
+  reservationWith: string
+  numberOfPeople: string
+  isCustomized?: boolean // Whether user has customized this date's settings
+}
+
 export function OnboardingForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -41,6 +55,7 @@ export function OnboardingForm() {
   const billingParam = searchParams.get("billing") || "annual"
 
   const [currentStep, setCurrentStep] = useState(1)
+  const totalSteps = 3
   const [billingFrequency, setBillingFrequency] = useState<"monthly" | "annual">(billingParam as "monthly" | "annual")
   const [formData, setFormData] = useState({
     firstName: "",
@@ -50,16 +65,27 @@ export function OnboardingForm() {
     address: "",
     reservationWith: "",
     numberOfPeople: "",
+    bookingType: "recurring", // "recurring" or "specific-dates"
+    frequency: "", // "weekly" or "biweekly" (for recurring)
     preferredDay: "",
     preferredTime: "18:00", // Default to 6 PM
-    startDateOption: "", // "this-week" or "next-week"
+    startDateOption: "", // "this-week" or "next-week" (for recurring)
+    defaultPreferredTime: "18:00", // Default time for specific dates
+    specificDates: [] as SpecificDateEntry[], // Array of date entries with individual settings
+    editingDateIndex: -1, // Track which date is being edited (-1 means none)
     pricingPlan: planParam, // From URL parameter
     billingFrequency: billingParam as "monthly" | "annual",
     additionalInfo: "",
+    favoriteRestaurants: "",
+    restaurantsToTry: "",
+    dietaryRestrictions: "",
+    cuisinesToAvoid: "",
+    additionalNotes: "",
   })
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [addressVerified, setAddressVerified] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -167,6 +193,7 @@ export function OnboardingForm() {
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setFormData({ ...formData, address: value })
+    setAddressVerified(false)
 
     // Debounce API calls
     if (debounceTimerRef.current) {
@@ -183,10 +210,8 @@ export function OnboardingForm() {
     setFormData({ ...formData, address: suggestion.formatted })
     setShowSuggestions(false)
     setSuggestions([])
+    setAddressVerified(true)
   }
-  const [timeHour, setTimeHour] = useState("6")
-  const [timeMinute, setTimeMinute] = useState("00")
-  const [timePeriod, setTimePeriod] = useState<"AM" | "PM">("PM")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
@@ -265,9 +290,215 @@ export function OnboardingForm() {
     setFormData({ ...formData, billingFrequency: freq })
   }
 
+  // Handle specific dates selection
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    if (!dates) {
+      setFormData((prev) => ({ ...prev, specificDates: [] }))
+      return
+    }
+
+    const maxDates = dates.slice(0, 4)
+    const sortedDates = [...maxDates].sort((a, b) => a.getTime() - b.getTime())
+
+    setFormData((prev) => {
+      const existingEntries = prev.specificDates.filter((entry) =>
+        sortedDates.some((d) => d.toDateString() === entry.date.toDateString())
+      )
+
+      const existingDateStrings = existingEntries.map((e) => e.date.toDateString())
+      const newDates = sortedDates.filter(
+        (d) => !existingDateStrings.includes(d.toDateString())
+      )
+
+      const defaultPeople =
+        prev.reservationWith === "spouse" ||
+          prev.reservationWith === "boyfriend-girlfriend"
+          ? "2"
+          : prev.numberOfPeople || ""
+
+      const newEntries: SpecificDateEntry[] = newDates.map((date) => ({
+        date,
+        time: prev.defaultPreferredTime || "18:00",
+        reservationWith: prev.reservationWith || "",
+        numberOfPeople: defaultPeople,
+        isCustomized: false,
+      }))
+
+      const allEntries = [...existingEntries, ...newEntries].sort(
+        (a, b) => a.date.getTime() - b.date.getTime()
+      )
+
+      return { ...prev, specificDates: allEntries }
+    })
+  }
+
+  // Update defaults and apply to all non-customized dates
+  const updateDefaults = (field: "defaultPreferredTime", value: string) => {
+    setFormData((prev) => {
+      const updates: any = {}
+
+      if (field === "defaultPreferredTime") {
+        const time24 = value.includes("AM") || value.includes("PM")
+          ? convertTo24Hour(value)
+          : value
+        updates.defaultPreferredTime = time24
+        updates.specificDates = prev.specificDates.map((entry) => {
+          if (!entry.isCustomized) {
+            return { ...entry, time: time24 }
+          }
+          return entry
+        })
+      }
+
+      return { ...prev, ...updates }
+    })
+  }
+
+  // Sync reservation preferences to all non-customized dates
+  useEffect(() => {
+    if (formData.bookingType === "specific-dates" && formData.reservationWith) {
+      setFormData((prev) => {
+        const defaultPeople =
+          prev.reservationWith === "spouse" ||
+          prev.reservationWith === "boyfriend-girlfriend"
+            ? "2"
+            : prev.numberOfPeople || ""
+
+        return {
+          ...prev,
+          specificDates: prev.specificDates.map((entry) => {
+            if (!entry.isCustomized) {
+              return {
+                ...entry,
+                reservationWith: prev.reservationWith,
+                numberOfPeople: defaultPeople,
+              }
+            }
+            return entry
+          }),
+        }
+      })
+    }
+  }, [formData.reservationWith, formData.numberOfPeople, formData.bookingType])
+
+  // Remove a specific date
+  const removeDate = (dateToRemove: Date) => {
+    setFormData((prev) => ({
+      ...prev,
+      specificDates: prev.specificDates.filter(
+        (entry) => entry.date.toDateString() !== dateToRemove.toDateString()
+      ),
+    }))
+  }
+
+  // Update a specific date entry's settings
+  const updateDateEntry = (dateIndex: number, field: keyof SpecificDateEntry, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      specificDates: prev.specificDates.map((entry, index) => {
+        if (index === dateIndex) {
+          if (field === "reservationWith") {
+            if (value === "spouse" || value === "boyfriend-girlfriend") {
+              return { ...entry, [field]: value, numberOfPeople: "2", isCustomized: true }
+            } else {
+              return { ...entry, [field]: value, numberOfPeople: "", isCustomized: true }
+            }
+          }
+          if (field === "time" && value.includes(":")) {
+            if (value.includes("AM") || value.includes("PM")) {
+              const time24 = convertTo24Hour(value)
+              return { ...entry, [field]: time24, isCustomized: true }
+            }
+            return { ...entry, [field]: value, isCustomized: true }
+          }
+          if (field === "numberOfPeople") {
+            return { ...entry, [field]: value, isCustomized: true }
+          }
+          return { ...entry, [field]: value, isCustomized: true }
+        }
+        return entry
+      }),
+    }))
+  }
+
+  // Reset a date back to defaults
+  const resetDateToDefaults = (dateIndex: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      specificDates: prev.specificDates.map((entry, index) => {
+        if (index === dateIndex) {
+          const defaultPeople =
+            prev.reservationWith === "spouse" ||
+            prev.reservationWith === "boyfriend-girlfriend"
+              ? "2"
+              : prev.numberOfPeople || ""
+          return {
+            ...entry,
+            time: prev.defaultPreferredTime || "18:00",
+            reservationWith: prev.reservationWith || "",
+            numberOfPeople: defaultPeople,
+            isCustomized: false,
+          }
+        }
+        return entry
+      }),
+      editingDateIndex: -1,
+    }))
+  }
+
+  // Validate current step
+  const canProceedToNextStep = () => {
+    if (currentStep === 1) {
+      return (
+        formData.firstName &&
+        formData.lastName &&
+        formData.email &&
+        formData.phoneNumber &&
+        formData.address &&
+        addressVerified
+      )
+    } else if (currentStep === 2) {
+      if (formData.bookingType === "recurring") {
+        return (
+          formData.reservationWith &&
+          formData.frequency &&
+          formData.preferredDay &&
+          formData.preferredTime &&
+          formData.startDateOption &&
+          (shouldShowNumberOfPeople ? formData.numberOfPeople : true)
+        )
+      } else {
+        if (!formData.reservationWith || !formData.defaultPreferredTime) return false
+        const needsPeople =
+          formData.reservationWith === "kids" ||
+          formData.reservationWith === "whole-family" ||
+          formData.reservationWith === "friend"
+        if (needsPeople && !formData.numberOfPeople) return false
+        if (formData.specificDates.length === 0) return false
+        return formData.specificDates.every((entry) => {
+          const entryNeedsPeople =
+            entry.reservationWith === "kids" ||
+            entry.reservationWith === "whole-family" ||
+            entry.reservationWith === "friend"
+          return (
+            entry.time &&
+            entry.reservationWith &&
+            (entryNeedsPeople ? entry.numberOfPeople : true)
+          )
+        })
+      }
+    }
+    return true // Step 3 (Additional Info) is optional
+  }
+
   // Validate step 1
   const canProceedStep1 = () => {
-    return formData.pricingPlan
+    return formData.firstName &&
+      formData.lastName &&
+      formData.email &&
+      formData.phoneNumber &&
+      formData.address &&
+      addressVerified
   }
 
   // Convert 12-hour display format to 24-hour format for storage
@@ -336,19 +567,81 @@ export function OnboardingForm() {
 
   // Validate step 2
   const canProceedStep2 = () => {
-    return formData.reservationWith && formData.preferredDay && formData.preferredTime && formData.startDateOption
+    if (formData.bookingType === "recurring") {
+      return (
+        formData.reservationWith &&
+        formData.frequency &&
+        formData.preferredDay &&
+        formData.preferredTime &&
+        formData.startDateOption &&
+        (shouldShowNumberOfPeople ? formData.numberOfPeople : true)
+      )
+    } else {
+      if (!formData.reservationWith || !formData.defaultPreferredTime) return false
+      const needsPeople =
+        formData.reservationWith === "kids" ||
+        formData.reservationWith === "whole-family" ||
+        formData.reservationWith === "friend"
+      if (needsPeople && !formData.numberOfPeople) return false
+      if (formData.specificDates.length === 0) return false
+      return formData.specificDates.every((entry) => {
+        const entryNeedsPeople =
+          entry.reservationWith === "kids" ||
+          entry.reservationWith === "whole-family" ||
+          entry.reservationWith === "friend"
+        return (
+          entry.time &&
+          entry.reservationWith &&
+          (entryNeedsPeople ? entry.numberOfPeople : true)
+        )
+      })
+    }
   }
 
-  // Validate step 3 (Checkout)
-  const canProceedStep3 = () => {
-    return formData.firstName && formData.lastName && formData.email && formData.phoneNumber && formData.address
+  // Validate form for submission
+  const canSubmit = () => {
+    const baseFields =
+      formData.firstName &&
+      formData.lastName &&
+      formData.email &&
+      formData.phoneNumber &&
+      formData.address &&
+      formData.reservationWith &&
+      (shouldShowNumberOfPeople ? formData.numberOfPeople : true)
+
+    if (formData.bookingType === "recurring") {
+      return (
+        baseFields &&
+        formData.frequency &&
+        formData.preferredDay &&
+        formData.preferredTime &&
+        formData.startDateOption
+      )
+    } else {
+      if (!formData.reservationWith || !formData.defaultPreferredTime) return false
+      const needsPeople =
+        formData.reservationWith === "kids" ||
+        formData.reservationWith === "whole-family" ||
+        formData.reservationWith === "friend"
+      if (needsPeople && !formData.numberOfPeople) return false
+      if (formData.specificDates.length === 0) return false
+      return formData.specificDates.every((entry) => {
+        const entryNeedsPeople =
+          entry.reservationWith === "kids" ||
+          entry.reservationWith === "whole-family" ||
+          entry.reservationWith === "friend"
+        return (
+          entry.time &&
+          entry.reservationWith &&
+          (entryNeedsPeople ? entry.numberOfPeople : true)
+        )
+      })
+    }
   }
 
   const handleNext = () => {
-    if (currentStep === 1 && canProceedStep1()) {
-      setCurrentStep(2)
-    } else if (currentStep === 2 && canProceedStep2()) {
-      setCurrentStep(3)
+    if (canProceedToNextStep() && currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1)
     }
   }
 
@@ -356,6 +649,17 @@ export function OnboardingForm() {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
     }
+  }
+
+  // Format day for display
+  const dayLabels: Record<string, string> = {
+    monday: "Monday",
+    tuesday: "Tuesday",
+    wednesday: "Wednesday",
+    thursday: "Thursday",
+    friday: "Friday",
+    saturday: "Saturday",
+    sunday: "Sunday",
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -400,9 +704,6 @@ export function OnboardingForm() {
             additionalInfo: "",
           })
           setBillingFrequency("annual")
-          setTimeHour("")
-          setTimeMinute("")
-          setTimePeriod("PM")
           setCurrentStep(1)
           setSubmitStatus("idle")
         }, 5000)
@@ -444,18 +745,26 @@ export function OnboardingForm() {
         throw new Error(paymentData.error || "Failed to create payment")
       }
 
-      // Store form data temporarily (you might want to save this to a database)
-      // For now, we'll submit it to onboarding API which will store it
-      // The webhook will confirm payment later
+      // Store form data to onboarding API
+      const submissionData = {
+        ...formData,
+        specificDates: formData.specificDates.map((entry) => ({
+          date: entry.date.toISOString(),
+          time: entry.time,
+          reservationWith: entry.reservationWith,
+          numberOfPeople: entry.numberOfPeople,
+        })),
+        editingDateIndex: undefined,
+        orderId: orderId,
+      }
+      delete submissionData.editingDateIndex
+
       const onboardingResponse = await fetch("/api/onboarding", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...formData,
-          orderId: orderId, // Include order ID for tracking
-        }),
+        body: JSON.stringify(submissionData),
       })
 
       if (!onboardingResponse.ok) {
@@ -483,16 +792,6 @@ export function OnboardingForm() {
     }
   }
 
-  // Format day for display
-  const dayLabels: Record<string, string> = {
-    monday: "Monday",
-    tuesday: "Tuesday",
-    wednesday: "Wednesday",
-    thursday: "Thursday",
-    friday: "Friday",
-    saturday: "Saturday",
-    sunday: "Sunday",
-  }
   const preferredDayLabel = formData.preferredDay ? dayLabels[formData.preferredDay] || formData.preferredDay : ""
 
   // Format pricing plan for display
@@ -585,48 +884,73 @@ export function OnboardingForm() {
           </div>
 
           {/* Step Indicator */}
-          <div className="mb-8 max-w-2xl mx-auto">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="flex items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${currentStep >= 1 ? "bg-[#F0BB78] text-[#543A14]" : "bg-[#F0BB78]/30 text-[#543A14]/60"
-                  }`}>
-                  {currentStep > 1 ? (
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    "1"
+          <div className="mb-8">
+            <div className="flex items-center justify-center gap-4 md:gap-8">
+              {[
+                { number: 1, title: "Personal Info" },
+                { number: 2, title: "Reservation Preferences" },
+                { number: 3, title: "Additional Info" },
+              ].map((step, index) => (
+                <React.Fragment key={step.number}>
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors ${currentStep === step.number
+                        ? "bg-[#F0BB78] text-[#543A14]"
+                        : currentStep > step.number
+                          ? "bg-[#F0BB78]/30 text-[#543A14]"
+                          : "bg-[#F0BB78]/10 text-[#543A14]/50"
+                        }`}
+                    >
+                      {step.number}
+                </div>
+                    <span
+                      className={`text-xs mt-2 font-medium hidden md:block ${currentStep === step.number
+                        ? "text-[#543A14]"
+                        : "text-[#543A14]/50"
+                        }`}
+                    >
+                      {step.title}
+                </span>
+              </div>
+                  {index < 2 && (
+                    <div
+                      className={`h-px w-12 md:w-20 transition-colors ${currentStep > step.number
+                        ? "bg-[#F0BB78]"
+                        : "bg-[#F0BB78]/20"
+                        }`}
+                    />
                   )}
-                </div>
-                <span className={`text-sm font-medium hidden sm:inline transition-colors ${currentStep >= 1 ? "text-[#543A14]" : "text-[#543A14]/60"}`}>
-                  Preferences
-                </span>
-              </div>
-              <div className={`w-16 h-px transition-colors ${currentStep >= 2 ? "bg-[#F0BB78]" : "bg-[#F0BB78]/30"}`}></div>
-              <div className="flex items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${currentStep >= 2 ? "bg-[#F0BB78] text-[#543A14]" : "bg-[#F0BB78]/30 text-[#543A14]/60"
-                  }`}>
-                  2
-                </div>
-                <span className={`text-sm font-medium hidden sm:inline transition-colors ${currentStep >= 2 ? "text-[#543A14]" : "text-[#543A14]/60"}`}>
-                  Checkout
-                </span>
-              </div>
+                </React.Fragment>
+              ))}
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="pb-12">
-            <div className="relative min-h-[600px] pb-8">
-              {/* Step 1: Reservation Preferences */}
-              <div
-                className={`transition-all duration-500 ease-in-out ${currentStep === 1
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 translate-x-full absolute inset-0 pointer-events-none"
-                  }`}
-              >
-                <div className="bg-white rounded-xl shadow-lg border border-[#F0BB78]/20 p-6 md:p-8 lg:p-10 max-w-3xl mx-auto">
-                  {/* Plan Summary Badge */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (currentStep === totalSteps) {
+                handleSubmit(e)
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const target = e.target as HTMLElement
+                if (target.tagName === "TEXTAREA") {
+                  return
+                }
+                if (target.id === "address") {
+                  return
+                }
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+            className="pb-12"
+          >
+            <div className="bg-white rounded-xl shadow-lg border border-[#F0BB78]/20 p-6 md:p-8 lg:p-10 space-y-8">
+              {/* Plan Summary Badge - Show on all steps */}
                   {formData.pricingPlan && (
                     <div className="mb-6 p-4 bg-[#F0BB78]/10 rounded-lg border border-[#F0BB78]/30">
                       <div className="flex items-center justify-between">
@@ -649,15 +973,204 @@ export function OnboardingForm() {
                     </div>
                   )}
 
-                  <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-2">
+              {/* Step 1: Personal Information */}
+              {currentStep === 1 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
+                    Personal Information
+                  </h2>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName" className="text-sm font-medium text-[#543A14]">
+                        First Name *
+                      </Label>
+                      <Input
+                        id="firstName"
+                        value={formData.firstName}
+                        onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                        required
+                        className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                        placeholder="John"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-sm font-medium text-[#543A14]">
+                        Last Name *
+                      </Label>
+                      <Input
+                        id="lastName"
+                        value={formData.lastName}
+                        onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                        required
+                        className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                        placeholder="Doe"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-sm font-medium text-[#543A14]">
+                        Email Address *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
+                        className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                        placeholder="john@example.com"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber" className="text-sm font-medium text-[#543A14]">
+                        Phone Number *
+                      </Label>
+                      <Input
+                        id="phoneNumber"
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                        required
+                        className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                        placeholder="(555) 123-4567"
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2 relative">
+                      <Label htmlFor="address" className="text-sm font-medium text-[#543A14]">
+                        Address *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          ref={addressInputRef}
+                          id="address"
+                          placeholder="Start typing your address..."
+                          value={formData.address}
+                          onChange={handleAddressChange}
+                          onFocus={() => {
+                            if (suggestions.length > 0) {
+                              setShowSuggestions(true)
+                            }
+                          }}
+                          required
+                          className={`h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 ${addressVerified && formData.address ? "border-green-500/50" : ""
+                            }`}
+                        />
+                        {isLoading && !addressVerified && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                            <div className="w-5 h-5 border-2 border-[#F0BB78] border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                        {addressVerified && formData.address && !isLoading && (
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                            <svg
+                              className="w-5 h-5 text-green-500"
+                              fill="none"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                        {showSuggestions && suggestions.length > 0 && (
+                          <div
+                            ref={suggestionsRef}
+                            className="absolute z-50 w-full mt-1 bg-white border border-[#F0BB78]/30 rounded-md shadow-lg max-h-60 overflow-auto"
+                          >
+                            {suggestions.map((suggestion, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                onClick={() => handleSuggestionSelect(suggestion)}
+                                className="w-full text-left px-4 py-3 hover:bg-[#F0BB78]/10 border-b border-[#F0BB78]/10 last:border-b-0 transition-colors"
+                              >
+                                <div className="text-[#543A14] font-medium">{suggestion.formatted}</div>
+                                {suggestion.city && suggestion.state && (
+                                  <div className="text-sm text-[#543A14]/70 mt-1">
+                                    {suggestion.city}, {suggestion.state} {suggestion.postcode || ""}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {formData.address && !addressVerified && (
+                        <p className="text-sm text-amber-600 mt-1">
+                          Please select an address from the suggestions above to continue.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Reservation Preferences */}
+              {currentStep === 2 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
                     Reservation Preferences
                   </h2>
-                  <p className="text-sm text-[#543A14]/70 mb-8">
-                    Tell us about your reservation details and preferences
-                  </p>
 
                   <div className="space-y-6">
-                    {/* Who */}
+                    {/* Booking Type Selection */}
+                    <div className="space-y-4 pb-4 border-b border-[#F0BB78]/20">
+                      <Label className="text-sm font-medium text-[#543A14] block">
+                        How would you like to schedule? *
+                      </Label>
+                      <RadioGroup
+                        value={formData.bookingType}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            bookingType: value as "recurring" | "specific-dates",
+                            frequency: "",
+                            preferredDay: "",
+                            startDateOption: "",
+                            specificDates: [],
+                            editingDateIndex: -1,
+                          })
+                        }
+                        className="space-y-3"
+                      >
+                        <div className="flex items-start space-x-3 space-y-0">
+                          <RadioGroupItem value="recurring" id="recurring" className="mt-1" />
+                          <div className="flex-1">
+                            <Label
+                              htmlFor="recurring"
+                              className="text-base font-medium text-[#543A14] cursor-pointer"
+                            >
+                              Recurring Schedule
+                            </Label>
+                            <p className="text-sm text-[#543A14]/70 mt-1">
+                              Weekly or bi-weekly reservations on the same day
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3 space-y-0">
+                          <RadioGroupItem value="specific-dates" id="specific-dates" className="mt-1" />
+                          <div className="flex-1">
+                            <Label
+                              htmlFor="specific-dates"
+                              className="text-base font-medium text-[#543A14] cursor-pointer"
+                            >
+                              Choose Specific Dates
+                            </Label>
+                            <p className="text-sm text-[#543A14]/70 mt-1">
+                              Select the exact dates you'd like us to book for you
+                            </p>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </div>
+
+                    {/* Who - Shared for both booking types */}
                     <div className="space-y-3">
                       <Label htmlFor="reservationWith" className="text-sm font-medium text-[#543A14]">
                         With who will your reservation be? *
@@ -704,6 +1217,29 @@ export function OnboardingForm() {
                       </div>
                     )}
 
+                    {/* Recurring Booking Fields */}
+                    {formData.bookingType === "recurring" && (
+                      <>
+                        {/* Frequency Selection */}
+                        <div className="space-y-3 pt-4 border-t border-[#F0BB78]/20">
+                          <Label htmlFor="frequency" className="text-sm font-medium text-[#543A14]">
+                            How often? *
+                          </Label>
+                          <Select
+                            value={formData.frequency}
+                            onValueChange={(value) => setFormData({ ...formData, frequency: value })}
+                            required={formData.bookingType === "recurring"}
+                          >
+                            <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
+                              <SelectValue placeholder="Select frequency" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-[#F0BB78]/30">
+                              <SelectItem value="weekly" className="text-[#543A14]">Weekly</SelectItem>
+                              <SelectItem value="biweekly" className="text-[#543A14]">Bi-weekly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
                     {/* Day and Time */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-3">
@@ -739,12 +1275,6 @@ export function OnboardingForm() {
                           onValueChange={(value) => {
                             const time24 = convertTo24Hour(value)
                             setFormData(prev => ({ ...prev, preferredTime: time24 }))
-                            // Update time components for display
-                            const [time, period] = value.split(" ")
-                            const [hour, minute] = time.split(":")
-                            setTimeHour(hour)
-                            setTimeMinute(minute)
-                            setTimePeriod(period as "AM" | "PM")
                           }}
                           required
                         >
@@ -808,291 +1338,470 @@ export function OnboardingForm() {
                         </div>
                       </div>
                     )}
+                      </>
+                    )}
 
-                    {/* Additional Preferences */}
-                    <div className="pt-4 border-t border-[#F0BB78]/20">
-                      <Label htmlFor="additionalInfo" className="text-sm font-medium text-[#543A14] block mb-2">
-                        Additional Preferences (Optional)
+                    {/* Specific Dates Selection */}
+                    {formData.bookingType === "specific-dates" && (
+                      <>
+                        {/* Default Time Preference */}
+                        <div className="space-y-6 pt-4 border-t border-[#F0BB78]/20 pb-4 border-b border-[#F0BB78]/20">
+                          <div>
+                            <Label className="text-sm font-medium text-[#543A14] block mb-1">
+                              Default Time Preference *
                       </Label>
-                      <p className="text-xs text-[#543A14]/60 mb-3">
-                        Share your preferences, dietary restrictions, favorite cuisines, or specific restaurants you'd like us to try.
-                      </p>
-                      <Textarea
-                        id="additionalInfo"
-                        placeholder="I love Italian and French cuisine. I'm vegetarian and prefer quieter, intimate settings..."
-                        value={formData.additionalInfo}
-                        onChange={(e) => setFormData({ ...formData, additionalInfo: e.target.value })}
-                        rows={4}
-                        className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
-                      />
+                            <p className="text-xs text-[#543A14]/60 mb-4">
+                              Set your preferred time. This will be applied to all selected dates, but you can customize individual dates if needed.
+                            </p>
+                          </div>
+
+                          {/* Default Time */}
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium text-[#543A14]">
+                              Preferred Time *
+                            </Label>
+                            <Select
+                              value={
+                                formData.defaultPreferredTime
+                                  ? convertTo12Hour(formData.defaultPreferredTime)
+                                  : "6:00 PM"
+                              }
+                              onValueChange={(value) => {
+                                const time24 = convertTo24Hour(value)
+                                updateDefaults("defaultPreferredTime", time24)
+                              }}
+                              required
+                            >
+                              <SelectTrigger className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 w-full bg-white">
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white border-[#F0BB78]/30 max-h-[300px]">
+                                {["AM", "PM"].map((period) =>
+                                  Array.from({ length: 12 }, (_, i) => i + 1).map((hour) =>
+                                    ["00", "30"].map((minute) => {
+                                      const displayTime = `${hour}:${minute} ${period}`
+                                      return (
+                                        <SelectItem
+                                          key={displayTime}
+                                          value={displayTime}
+                                          className="text-[#543A14]"
+                                        >
+                                          {displayTime}
+                                        </SelectItem>
+                                      )
+                                    })
+                                  ).flat()
+                                ).flat()}
+                              </SelectContent>
+                            </Select>
                     </div>
                   </div>
 
-                  {/* Navigation Buttons */}
-                  <div className="flex gap-4 mt-8">
+                        {/* Date Selection */}
+                        <div className="space-y-4 pt-4">
+                          <div className="space-y-3">
+                            <Label className="text-sm font-medium text-[#543A14] block">
+                              Select Dates (max 4) *
+                            </Label>
+                            <p className="text-xs text-[#543A14]/60">
+                              Select up to 4 dates. Default preferences will be applied automatically.
+                            </p>
+                            <Popover>
+                              <PopoverTrigger asChild>
                     <Button
                       type="button"
-                      onClick={handleBack}
                       variant="outline"
-                      className="flex-1 border-[#F0BB78]/50 text-[#543A14] hover:bg-[#F0BB78]/10 h-12"
+                                  className="w-full justify-start text-left font-normal h-12 text-base border-[#F0BB78]/50 hover:border-[#F0BB78] focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 bg-white"
+                                  disabled={formData.specificDates.length >= 4}
                     >
-                      Back
+                                  <CalendarIcon className="mr-2 h-4 w-4 text-[#543A14]" />
+                                  {formData.specificDates.length === 0
+                                    ? "Pick your dates (max 4)"
+                                    : `${formData.specificDates.length} date${formData.specificDates.length > 1 ? "s" : ""} selected${formData.specificDates.length >= 4 ? " (max reached)" : ""}`}
                     </Button>
-                    <Button
-                      type="button"
-                      onClick={handleNext}
-                      disabled={!canProceedStep2()}
-                      className="flex-1 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
-                    >
-                      Continue to Checkout
-                    </Button>
-                  </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 bg-white border-[#F0BB78]/30" align="start">
+                                <Calendar
+                                  mode="multiple"
+                                  selected={formData.specificDates.map((entry) => entry.date)}
+                                  onSelect={handleDateSelect}
+                                  disabled={(date) => {
+                                    const today = new Date()
+                                    today.setHours(0, 0, 0, 0)
+                                    if (formData.specificDates.length >= 4) {
+                                      const isSelected = formData.specificDates.some(
+                                        (e) => e.date.toDateString() === date.toDateString()
+                                      )
+                                      return date < today || !isSelected
+                                    }
+                                    return date < today
+                                  }}
+                                  initialFocus
+                                  className="border-0"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            {formData.specificDates.length >= 4 && (
+                              <p className="text-xs text-[#543A14]/60 mt-1">
+                                Maximum of 4 dates reached. Remove a date to select a different one.
+                              </p>
+                            )}
                 </div>
               </div>
 
-              {/* Step 2: Contact Information + Payment */}
-              <div
-                className={`transition-all duration-500 ease-in-out ${currentStep === 2
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 translate-x-full absolute inset-0 pointer-events-none"
-                  }`}
-              >
-                <div className="bg-white rounded-xl shadow-lg border border-[#F0BB78]/20 p-6 md:p-8 lg:p-10 max-w-6xl mx-auto">
-                  <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-                    {/* Left Column: Contact Information */}
-                    <div>
-                      <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-2">
-                        Contact Information
-                      </h2>
-                      <p className="text-sm text-[#543A14]/70 mb-6">
-                        We'll use this to confirm your reservations
-                      </p>
-
-                      <div className="space-y-5">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="firstName" className="text-sm font-medium text-[#543A14]">
-                              First Name *
+                        {/* Selected Dates Display */}
+                        {formData.specificDates.length > 0 && (
+                          <div className="space-y-4 pt-4 border-t border-[#F0BB78]/20">
+                            <Label className="text-sm font-medium text-[#543A14] block">
+                              Selected Dates
                             </Label>
-                            <Input
-                              id="firstName"
-                              value={formData.firstName}
-                              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                              required
-                              className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                              placeholder="John"
-                            />
-                          </div>
+                            {formData.specificDates.map((entry, index) => {
+                              const reservationWithLabels: Record<string, string> = {
+                                spouse: "Spouse",
+                                "boyfriend-girlfriend": "Boyfriend / Girlfriend",
+                                kids: "Kids",
+                                "whole-family": "Whole Family",
+                                friend: "Friend",
+                              }
+                              const withLabel =
+                                reservationWithLabels[entry.reservationWith] ||
+                                entry.reservationWith
+                              const peopleCount =
+                                entry.reservationWith === "spouse" ||
+                                  entry.reservationWith === "boyfriend-girlfriend"
+                                  ? "2"
+                                  : entry.numberOfPeople || ""
 
-                          <div className="space-y-2">
-                            <Label htmlFor="lastName" className="text-sm font-medium text-[#543A14]">
-                              Last Name *
-                            </Label>
-                            <Input
-                              id="lastName"
-                              value={formData.lastName}
-                              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                              required
-                              className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                              placeholder="Doe"
-                            />
-                          </div>
-                        </div>
+                              const isEditing = formData.editingDateIndex === index
 
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="text-sm font-medium text-[#543A14]">
-                            Email Address *
-                          </Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                            className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                            placeholder="john@example.com"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="phoneNumber" className="text-sm font-medium text-[#543A14]">
-                            Phone Number *
-                          </Label>
-                          <Input
-                            id="phoneNumber"
-                            type="tel"
-                            value={formData.phoneNumber}
-                            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                            required
-                            className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                            placeholder="(555) 123-4567"
-                          />
-                        </div>
-
-                        <div className="space-y-2 relative">
-                          <Label htmlFor="address" className="text-sm font-medium text-[#543A14]">
-                            Address *
-                          </Label>
-                          <div className="relative">
-                            <Input
-                              ref={addressInputRef}
-                              id="address"
-                              placeholder="Start typing your address..."
-                              value={formData.address}
-                              onChange={handleAddressChange}
-                              onFocus={() => {
-                                if (suggestions.length > 0) {
-                                  setShowSuggestions(true)
-                                }
-                              }}
-                              required
-                              className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
-                            />
-                            {isLoading && (
-                              <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                <div className="w-5 h-5 border-2 border-[#F0BB78] border-t-transparent rounded-full animate-spin" />
-                              </div>
-                            )}
-                            {showSuggestions && suggestions.length > 0 && (
-                              <div
-                                ref={suggestionsRef}
-                                className="absolute z-50 w-full mt-1 bg-white border border-[#F0BB78]/30 rounded-md shadow-lg max-h-60 overflow-auto"
-                              >
-                                {suggestions.map((suggestion, index) => (
-                                  <button
-                                    key={index}
-                                    type="button"
-                                    onClick={() => handleSuggestionSelect(suggestion)}
-                                    className="w-full text-left px-4 py-3 hover:bg-[#F0BB78]/10 border-b border-[#F0BB78]/10 last:border-b-0 transition-colors"
-                                  >
-                                    <div className="text-[#543A14] font-medium">{suggestion.formatted}</div>
-                                    {suggestion.city && suggestion.state && (
-                                      <div className="text-sm text-[#543A14]/70 mt-1">
-                                        {suggestion.city}, {suggestion.state} {suggestion.postcode || ""}
+                              return (
+                                <div
+                                  key={index}
+                                  className={`p-4 bg-[#F0BB78]/5 border border-[#F0BB78]/20 rounded-lg ${entry.isCustomized ? "border-[#F0BB78]/50" : ""
+                                    }`}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <h4 className="font-medium text-[#543A14]">
+                                          {format(entry.date, "EEEE, MMMM d, yyyy")}
+                                        </h4>
+                                        {entry.isCustomized && (
+                                          <Badge
+                                            variant="outline"
+                                            className="text-xs bg-[#F0BB78]/20 border-[#F0BB78]/50 text-[#543A14]"
+                                          >
+                                            Customized
+                                          </Badge>
+                                        )}
                                       </div>
-                                    )}
-                                  </button>
-                                ))}
+                                      {!isEditing ? (
+                                        <div className="space-y-1 text-sm text-[#543A14]/80">
+                                          <p>
+                                            <span className="font-medium">Time:</span>{" "}
+                                            {convertTo12Hour(entry.time)}
+                                          </p>
+                                          <p>
+                                            <span className="font-medium">With:</span> {withLabel}
+                                            {peopleCount && ` (${peopleCount} people)`}
+                                          </p>
+                          </div>
+                                      ) : (
+                                        <div className="space-y-4 mt-4">
+                                          {/* Who */}
+                          <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-[#543A14]">
+                                              With who? *
+                            </Label>
+                                            <Select
+                                              value={entry.reservationWith}
+                                              onValueChange={(value) =>
+                                                updateDateEntry(index, "reservationWith", value)
+                                              }
+                              required
+                                            >
+                                              <SelectTrigger className="h-10 text-sm border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 bg-white">
+                                                <SelectValue placeholder="Select an option" />
+                                              </SelectTrigger>
+                                              <SelectContent className="bg-white border-[#F0BB78]/30">
+                                                <SelectItem value="spouse" className="text-[#543A14]">
+                                                  Spouse
+                                                </SelectItem>
+                                                <SelectItem
+                                                  value="boyfriend-girlfriend"
+                                                  className="text-[#543A14]"
+                                                >
+                                                  Boyfriend / Girlfriend
+                                                </SelectItem>
+                                                <SelectItem value="kids" className="text-[#543A14]">
+                                                  Kids
+                                                </SelectItem>
+                                                <SelectItem
+                                                  value="whole-family"
+                                                  className="text-[#543A14]"
+                                                >
+                                                  Whole Family
+                                                </SelectItem>
+                                                <SelectItem value="friend" className="text-[#543A14]">
+                                                  Friend
+                                                </SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                        </div>
+
+                                          {/* Number of People - Conditional */}
+                                          {(entry.reservationWith === "kids" ||
+                                            entry.reservationWith === "whole-family" ||
+                                            entry.reservationWith === "friend") && (
+                        <div className="space-y-2">
+                                                <Label className="text-xs font-medium text-[#543A14]">
+                                                  How many people? *
+                          </Label>
+                          <Input
+                                                  type="number"
+                                                  min="1"
+                                                  value={entry.numberOfPeople}
+                                                  onChange={(e) =>
+                                                    updateDateEntry(index, "numberOfPeople", e.target.value)
+                                                  }
+                            required
+                                                  className="h-10 text-sm border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
+                                                  placeholder="Enter number of people"
+                          />
+                        </div>
+                                            )}
+
+                                          {/* Time */}
+                        <div className="space-y-2">
+                                            <Label className="text-xs font-medium text-[#543A14]">
+                                              Preferred Time *
+                          </Label>
+                                            <Select
+                                              value={
+                                                entry.time ? convertTo12Hour(entry.time) : "6:00 PM"
+                                              }
+                                              onValueChange={(value) =>
+                                                updateDateEntry(index, "time", value)
+                                              }
+                            required
+                                            >
+                                              <SelectTrigger className="h-10 text-sm border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 bg-white">
+                                                <SelectValue placeholder="Select time" />
+                                              </SelectTrigger>
+                                              <SelectContent className="bg-white border-[#F0BB78]/30 max-h-[300px]">
+                                                {["AM", "PM"].map((period) =>
+                                                  Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                                    (hour) =>
+                                                      ["00", "30"].map((minute) => {
+                                                        const displayTime = `${hour}:${minute} ${period}`
+                                                        return (
+                                                          <SelectItem
+                                                            key={displayTime}
+                                                            value={displayTime}
+                                                            className="text-[#543A14]"
+                                                          >
+                                                            {displayTime}
+                                                          </SelectItem>
+                                                        )
+                                                      })
+                                                  ).flat()
+                                                ).flat()}
+                                              </SelectContent>
+                                            </Select>
+                        </div>
+
+                                          <div className="flex gap-2 pt-2">
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => resetDateToDefaults(index)}
+                                              className="text-xs h-8 border-[#F0BB78]/50 text-[#543A14] hover:bg-[#F0BB78]/10"
+                                            >
+                                              Reset to Defaults
+                                            </Button>
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              onClick={() =>
+                                                setFormData((prev) => ({
+                                                  ...prev,
+                                                  editingDateIndex: -1,
+                                                }))
+                                              }
+                                              className="text-xs h-8 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14]"
+                                            >
+                                              Done
+                                            </Button>
+                                          </div>
                               </div>
                             )}
+                                    </div>
+                                    <div className="flex items-start gap-2 ml-4">
+                                      {!isEditing && (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            setFormData((prev) => ({
+                                              ...prev,
+                                              editingDateIndex: index,
+                                            }))
+                                          }
+                                          className="text-xs h-8 text-[#543A14] hover:bg-[#F0BB78]/20"
+                                        >
+                                          Edit
+                                        </Button>
+                                      )}
+                                  <button
+                                    type="button"
+                                        onClick={() => removeDate(entry.date)}
+                                        className="text-[#543A14]/60 hover:text-[#543A14] transition-colors p-1"
+                                        aria-label="Remove date"
+                                      >
+                                        <X className="h-4 w-4" />
+                                  </button>
+                              </div>
                           </div>
                         </div>
+                              )
+                            })}
                       </div>
-
-                      {/* Back Button */}
-                      <div className="mt-8">
-                        <Button
-                          type="button"
-                          onClick={handleBack}
-                          variant="outline"
-                          className="w-full border-[#F0BB78]/50 text-[#543A14] hover:bg-[#F0BB78]/10 h-12"
-                        >
-                          Back
-                        </Button>
+                        )}
+                      </>
+                    )}
                       </div>
                     </div>
+              )}
 
-                    {/* Right Column: Summary & Payment */}
-                    <div className="lg:border-l lg:border-[#F0BB78]/20 lg:pl-8 lg:pt-0 pt-8 border-t border-[#F0BB78]/20 lg:border-t-0">
-                      <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-2">
-                        Summary
+              {/* Step 3: Additional Information */}
+              {currentStep === 3 && (
+                <div className="space-y-6">
+                  <h2 className="text-xl md:text-2xl font-serif font-light text-[#543A14] mb-6">
+                    Additional Information
                       </h2>
-                      <p className="text-sm text-[#543A14]/70 mb-6">
-                        Review your reservation details
-                      </p>
 
-                      {/* Plan Summary */}
-                      <div className="bg-[#FFF0DC]/50 rounded-lg border border-[#F0BB78]/30 p-5 mb-4">
-                        <h3 className="text-sm font-medium text-[#543A14] mb-4 uppercase tracking-wide">Your Plan</h3>
+                  {/* Favorite Restaurants */}
                         <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[#543A14]/70 text-sm">Plan</span>
-                            <span className="text-[#543A14] font-medium">{pricingPlanLabel}</span>
+                    <Label htmlFor="favoriteRestaurants" className="text-sm font-medium text-[#543A14]">
+                      Favorite Restaurants (Optional)
+                    </Label>
+                    <Textarea
+                      id="favoriteRestaurants"
+                      placeholder="Tell us about your favorite restaurants"
+                      value={formData.favoriteRestaurants}
+                      onChange={(e) => setFormData({ ...formData, favoriteRestaurants: e.target.value })}
+                      rows={3}
+                      className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                    />
                           </div>
-                          {formData.pricingPlan !== "business" && (
-                            <>
-                              <div className="flex justify-between items-center">
-                                <span className="text-[#543A14]/70 text-sm">Billing</span>
-                                <span className="text-[#543A14] font-medium text-sm">
-                                  {billingFrequency === "annual" ? "Annual (2 months free)" : "Monthly"}
-                                </span>
+
+                  {/* Restaurants to Try */}
+                  <div className="space-y-3">
+                    <Label htmlFor="restaurantsToTry" className="text-sm font-medium text-[#543A14]">
+                      Any restaurants you'd like us to try and book for you? (Optional)
+                    </Label>
+                    <Textarea
+                      id="restaurantsToTry"
+                      placeholder="We will do our best to book them for you"
+                      value={formData.restaurantsToTry}
+                      onChange={(e) => setFormData({ ...formData, restaurantsToTry: e.target.value })}
+                      rows={3}
+                      className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                    />
                               </div>
-                              <div className="flex justify-between items-center pt-3 border-t border-[#F0BB78]/20">
-                                <span className="text-[#543A14] font-medium">Total</span>
-                                <span className="text-[#543A14] font-medium text-lg">
-                                  ${getCurrentPrice(formData.pricingPlan)}
-                                  <span className="text-sm font-normal ml-1">
-                                    {billingFrequency === "monthly" ? "/month" : "/year"}
-                                  </span>
-                                </span>
+
+                  {/* Dietary Restrictions */}
+                  <div className="space-y-3">
+                    <Label htmlFor="dietaryRestrictions" className="text-sm font-medium text-[#543A14]">
+                      Any Dietary Restrictions? (Optional)
+                    </Label>
+                    <Textarea
+                      id="dietaryRestrictions"
+                      placeholder="Vegetarian, gluten-free, nut allergies, kosher..."
+                      value={formData.dietaryRestrictions}
+                      onChange={(e) => setFormData({ ...formData, dietaryRestrictions: e.target.value })}
+                      rows={3}
+                      className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                    />
                               </div>
-                            </>
-                          )}
-                        </div>
+
+                  {/* Cuisines/Places to Avoid */}
+                  <div className="space-y-3">
+                    <Label htmlFor="cuisinesToAvoid" className="text-sm font-medium text-[#543A14]">
+                      Any Type of Cuisine or Specific Place We Should Definitely Avoid? (Optional)
+                    </Label>
+                    <p className="text-xs text-[#543A14]/60">
+                      Help us avoid cuisines or restaurants you prefer not to visit
+                    </p>
+                    <Textarea
+                      id="cuisinesToAvoid"
+                      value={formData.cuisinesToAvoid}
+                      onChange={(e) => setFormData({ ...formData, cuisinesToAvoid: e.target.value })}
+                      rows={3}
+                      className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                    />
                       </div>
 
-                      {/* Reservation Details Summary */}
-                      <div className="bg-[#FFF0DC]/50 rounded-lg border border-[#F0BB78]/30 p-5 mb-6">
-                        <h3 className="text-sm font-medium text-[#543A14] mb-4 uppercase tracking-wide">Reservation Details</h3>
-                        <div className="space-y-3 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-[#543A14]/70">With</span>
-                            <span className="text-[#543A14] font-medium">
-                              {formData.reservationWith === "spouse" && "Spouse"}
-                              {formData.reservationWith === "boyfriend-girlfriend" && "Boyfriend / Girlfriend"}
-                              {formData.reservationWith === "kids" && "Kids"}
-                              {formData.reservationWith === "whole-family" && "Whole Family"}
-                              {formData.reservationWith === "friend" && "Friend"}
-                            </span>
+                  {/* Additional Notes */}
+                  <div className="space-y-3">
+                    <Label htmlFor="additionalNotes" className="text-sm font-medium text-[#543A14]">
+                      Additional Notes (Optional)
+                    </Label>
+                    <p className="text-xs text-[#543A14]/60">
+                      If there is something we haven't asked and you want to share with us to make your experience better, now is the time
+                    </p>
+                    <Textarea
+                      id="additionalNotes"
+                      value={formData.additionalNotes}
+                      onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                      rows={4}
+                      className="text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 resize-none"
+                    />
                           </div>
-                          {finalNumberOfPeople && (
-                            <div className="flex justify-between">
-                              <span className="text-[#543A14]/70">People</span>
-                              <span className="text-[#543A14] font-medium">{finalNumberOfPeople}</span>
                             </div>
                           )}
-                          {preferredDayLabel && (
-                            <div className="flex justify-between">
-                              <span className="text-[#543A14]/70">Day</span>
-                              <span className="text-[#543A14] font-medium">{preferredDayLabel}</span>
-                            </div>
-                          )}
-                          {formData.preferredTime && (
-                            <div className="flex justify-between">
-                              <span className="text-[#543A14]/70">Time</span>
-                              <span className="text-[#543A14] font-medium">
-                                {convertTo12Hour(formData.preferredTime)}
-                              </span>
-                            </div>
-                          )}
-                          {formData.startDateOption && formData.preferredDay && (
-                            <div className="flex justify-between pt-2 border-t border-[#F0BB78]/20">
-                              <span className="text-[#543A14]/70">Start Date</span>
-                              <span className="text-[#543A14] font-medium text-right max-w-[60%]">
-                                {formData.startDateOption === "this-week"
-                                  ? `This coming ${formData.preferredDay.charAt(0).toUpperCase() + formData.preferredDay.slice(1)}`
-                                  : `The following ${formData.preferredDay.charAt(0).toUpperCase() + formData.preferredDay.slice(1)}`
-                                }
-                                <span className="block text-xs text-[#543A14]/60 font-normal mt-0.5">
-                                  {formData.startDateOption === "this-week"
-                                    ? formatDate(getNextDateForDay(formData.preferredDay, 0))
-                                    : formatDate(getNextDateForDay(formData.preferredDay, 1))
-                                  }
-                                </span>
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
 
-                      {/* Complete Purchase Button */}
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting || !canProceedStep3()}
-                        className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
-                      >
-                        {isSubmitting ? "Processing..." : "Complete Purchase"}
-                      </Button>
+              {/* Navigation Buttons */}
+              <div className="pt-6 border-t border-[#F0BB78]/20">
+                <div className="flex gap-4">
+                  {currentStep > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBack}
+                      className="flex-1 border-[#F0BB78]/50 text-[#543A14] hover:bg-[#F0BB78]/10 h-12 font-medium"
+                    >
+                      Back
+                    </Button>
+                  )}
+                  {currentStep < totalSteps ? (
+                    <Button
+                      type="button"
+                      onClick={handleNext}
+                      disabled={!canProceedToNextStep()}
+                      className="flex-1 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
+                    >
+                      Next
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (currentStep === totalSteps && canSubmit() && !isSubmitting) {
+                          handleSubmit(e as any)
+                        }
+                      }}
+                      disabled={isSubmitting || !canSubmit()}
+                      className="flex-1 bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] disabled:opacity-50 disabled:cursor-not-allowed h-12 font-medium"
+                    >
+                      {isSubmitting ? "Processing..." : "Proceed to Payment"}
+                    </Button>
+                  )}
+                      </div>
 
                       {submitStatus === "success" && (
                         <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
@@ -1110,10 +1819,6 @@ export function OnboardingForm() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </form>
         </div>
