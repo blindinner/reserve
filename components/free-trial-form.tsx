@@ -645,14 +645,24 @@ export function FreeTrialForm() {
         // Continue anyway - payment is created
       }
 
-      // Set payment URL to show iframe on same page
-      if (paymentData.paymentUrl) {
-        setPaymentUrl(paymentData.paymentUrl)
-        setCurrentOrderId(orderId)
-        setIsPaymentReady(true)
-      } else {
-        throw new Error("No payment URL received")
+      // Store order data and redirect to checkout page
+      const checkoutData = {
+        orderId: orderId,
+        plan: plan,
+        billingFrequency: "monthly",
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        amount: amount,
+        paymentUrl: paymentData.paymentUrl,
       }
+
+      // Store in localStorage for checkout page
+      localStorage.setItem("checkout_order_data", JSON.stringify(checkoutData))
+
+      // Redirect to checkout page
+      router.push("/checkout")
     } catch (error) {
       console.error("Error processing payment:", error)
       setSubmitStatus("error")
@@ -1694,52 +1704,6 @@ export function FreeTrialForm() {
         </div>
       </form>
 
-      {/* Payment Modal Dialog */}
-      <Dialog open={isPaymentReady && !!paymentUrl} onOpenChange={(open) => {
-        if (!open) {
-          setIsPaymentReady(false)
-          setPaymentUrl(null)
-          setSubmitStatus("idle")
-        }
-      }}>
-        <DialogContent className="max-w-xl bg-[#FFF0DC] border-[#F0BB78]/30 p-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-4 pb-3 border-b border-[#F0BB78]/20">
-            <DialogTitle className="text-xl font-serif font-light text-[#543A14]">
-              Complete Your Payment
-            </DialogTitle>
-            <DialogDescription className="text-sm text-[#543A14]/70 pt-1">
-              Enter your payment information to complete your subscription
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-5 pt-4 pb-4">
-            <div className="bg-white rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm mb-4">
-              <iframe
-                id={iframeId}
-                src={paymentUrl || ""}
-                className="w-full h-[150px] border-0"
-                title="Payment form"
-              />
-            </div>
-
-            <Button
-              onClick={() => {
-                if (allpayRef.current && typeof allpayRef.current.pay === "function") {
-                  allpayRef.current.pay()
-                } else {
-                  setSubmitStatus("error")
-                  setIsPaymentReady(false)
-                  setPaymentUrl(null)
-                  setTimeout(() => setSubmitStatus("idle"), 5000)
-                }
-              }}
-              className="w-full bg-[#F0BB78] hover:bg-[#F0BB78]/90 text-[#543A14] h-12 font-medium shadow-lg hover:shadow-xl transition-shadow"
-            >
-              Complete Payment
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
     </>
   )
