@@ -2029,7 +2029,7 @@ export function OnboardingForm() {
                   color: #543A14;
                 }
               `}} />
-              <div className="rounded-lg border border-[#F0BB78]/30 overflow-hidden shadow-sm mb-4 bg-transparent">
+              <div className="rounded-lg overflow-hidden mb-4 bg-transparent">
                 <iframe
                   id={iframeId}
                   src={paymentUrl || ""}
