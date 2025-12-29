@@ -585,9 +585,20 @@ The Rendeza Team
       { status: 200 }
     )
   } catch (error) {
-    console.error("Error processing free trial form:", error)
+    console.error("❌ ERROR processing free trial form:", error)
+    console.error("Error type:", error instanceof Error ? error.constructor.name : typeof error)
+    console.error("Error message:", error instanceof Error ? error.message : String(error))
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
+    console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Unknown error",
+        ...(process.env.NODE_ENV === "development" && {
+          details: error instanceof Error ? error.stack : String(error)
+        })
+      },
       { status: 500 }
     )
   }

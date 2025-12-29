@@ -28,6 +28,7 @@ export function CheckoutContent() {
     const [isLoading, setIsLoading] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+    const [errorMessage, setErrorMessage] = useState<string>("")
     const allpayRef = useRef<any>(null)
     const iframeId = "allpay-payment-iframe-checkout"
 
@@ -84,7 +85,13 @@ export function CheckoutContent() {
                 throw new Error("No payment URL received")
             }
         } catch (error) {
-            console.error("Error creating payment:", error)
+            console.error("❌ Error creating payment:", {
+                error,
+                errorType: error instanceof Error ? error.constructor.name : typeof error,
+                errorMessage: error instanceof Error ? error.message : String(error),
+                errorStack: error instanceof Error ? error.stack : "No stack trace",
+                orderData,
+            })
             setSubmitStatus("error")
         } finally {
             setIsLoading(false)
@@ -103,12 +110,25 @@ export function CheckoutContent() {
                         router.push(`/payment/success?order_id=${orderData?.orderId || ""}`)
                     },
                     onError: function (error_n: number, error_msg: string) {
-                        console.error("Payment error:", error_n, error_msg)
+                        console.error("❌ Allpay Payment Error (useEffect):", {
+                            errorNumber: error_n,
+                            errorMessage: error_msg,
+                            orderId: orderData?.orderId,
+                            amount: orderData?.amount,
+                            plan: orderData?.plan,
+                            billingFrequency: orderData?.billingFrequency,
+                        })
+                        setErrorMessage(error_msg || `Payment error (code: ${error_n})`)
                         setSubmitStatus("error")
                     },
                 })
             } catch (err) {
-                console.error("Error initializing Allpay:", err)
+                console.error("❌ Error initializing Allpay (useEffect):", {
+                    error: err,
+                    errorType: err instanceof Error ? err.constructor.name : typeof err,
+                    errorMessage: err instanceof Error ? err.message : String(err),
+                    orderId: orderData?.orderId,
+                })
                 setSubmitStatus("error")
             }
         }
@@ -187,7 +207,15 @@ export function CheckoutContent() {
                                     router.push(`/payment/success?order_id=${orderData?.orderId || ""}`)
                                 },
                                 onError: function (error_n: number, error_msg: string) {
-                                    console.error("Payment error:", error_n, error_msg)
+                                    console.error("❌ Allpay Payment Error (Script onLoad):", {
+                                        errorNumber: error_n,
+                                        errorMessage: error_msg,
+                                        orderId: orderData?.orderId,
+                                        amount: orderData?.amount,
+                                        plan: orderData?.plan,
+                                        billingFrequency: orderData?.billingFrequency,
+                                    })
+                                    setErrorMessage(error_msg || `Payment error (code: ${error_n})`)
                                     setSubmitStatus("error")
                                 },
                             })
@@ -366,9 +394,17 @@ export function CheckoutContent() {
 
                                             {submitStatus === "error" && (
                                                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                                                    <p className="text-red-800 font-medium text-sm">
-                                                        Sorry, there was an error processing your payment. Please try again.
+                                                    <p className="text-red-800 font-medium text-sm mb-2">
+                                                        Payment Error
                                                     </p>
+                                                    <p className="text-red-700 text-sm">
+                                                        {errorMessage || "Sorry, there was an error processing your payment. Please try again."}
+                                                    </p>
+                                                    {errorMessage.includes("code: 6") && (
+                                                        <p className="text-red-600 text-xs mt-2">
+                                                            Note: This may be due to the payment amount being too low. Please contact support if this persists.
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
                                         </>
