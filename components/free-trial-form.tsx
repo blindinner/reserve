@@ -71,7 +71,6 @@ export function FreeTrialForm() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 3
-  const [addressVerified, setAddressVerified] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -167,8 +166,6 @@ export function FreeTrialForm() {
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setFormData({ ...formData, address: value })
-    // Unverify address if user types (modifies the selected address)
-    setAddressVerified(false)
 
     // Debounce API calls
     if (debounceTimerRef.current) {
@@ -185,7 +182,6 @@ export function FreeTrialForm() {
     setFormData({ ...formData, address: suggestion.formatted })
     setShowSuggestions(false)
     setSuggestions([])
-    setAddressVerified(true) // Mark address as verified when user selects from suggestions
   }
 
   // Determine if we should show the number of people field
@@ -434,14 +430,13 @@ export function FreeTrialForm() {
   // Validate current step
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
-      // Step 1: Personal Info - address must be verified (selected from autocomplete)
+      // Step 1: Personal Info - address is required but can be typed freely
       return (
         formData.firstName &&
         formData.lastName &&
         formData.email &&
         formData.phoneNumber &&
-        formData.address &&
-        addressVerified
+        formData.address
       )
     } else if (currentStep === 2) {
       // Step 2: Reservation Preferences
@@ -777,7 +772,7 @@ export function FreeTrialForm() {
                     <Input
                       ref={addressInputRef}
                       id="address"
-                      placeholder="Start typing your address..."
+                      placeholder="Enter your address..."
                       value={formData.address}
                       onChange={handleAddressChange}
                       onFocus={() => {
@@ -786,27 +781,11 @@ export function FreeTrialForm() {
                         }
                       }}
                       required
-                      className={`h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20 ${addressVerified && formData.address ? "border-green-500/50" : ""
-                        }`}
+                      className="h-12 text-base border-[#F0BB78]/50 focus:border-[#F0BB78] focus:ring-[#F0BB78]/20"
                     />
-                    {isLoading && !addressVerified && (
+                    {isLoading && (
                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
                         <div className="w-5 h-5 border-2 border-[#F0BB78] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                    {addressVerified && formData.address && !isLoading && (
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <svg
-                          className="w-5 h-5 text-green-500"
-                          fill="none"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path d="M5 13l4 4L19 7" />
-                        </svg>
                       </div>
                     )}
                     {showSuggestions && suggestions.length > 0 && (
@@ -832,9 +811,9 @@ export function FreeTrialForm() {
                       </div>
                     )}
                   </div>
-                  {formData.address && !addressVerified && (
-                    <p className="text-sm text-amber-600 mt-1">
-                      Please select an address from the suggestions above to continue.
+                  {suggestions.length > 0 && (
+                    <p className="text-xs text-[#543A14]/60 mt-1">
+                      You can select a suggested address or continue typing your own.
                     </p>
                   )}
                 </div>
